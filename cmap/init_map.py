@@ -12,7 +12,7 @@ def initialize_map():
     
     print("Initializing 3,969 blank region tiles... Please wait.")
     
-    # Create a single blank transparent image in memory to copy from
+    # blank transparent tile reference
     blank_tile = Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (0, 0, 0, 0))
     
     count = 0
