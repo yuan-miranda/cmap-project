@@ -3,6 +3,7 @@ import math
 import os
 import subprocess
 import json
+import time
 from PIL import Image
 
 DB_PATH = "coordinates.db"
@@ -34,6 +35,14 @@ def get_darker_color(current_rgba):
 def update_heatmap_tiles():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='coordinates'"
+    )
+    if not cursor.fetchone():
+        conn.close()
+        return
+
     cursor.execute(
         "SELECT rowid, player_name, x, z, dimension, timestamp FROM coordinates"
     )
@@ -43,7 +52,6 @@ def update_heatmap_tiles():
         conn.close()
         return
 
-    # Load existing players so historical entries are preserved
     player_data = {}
     if os.path.exists(PLAYERS_JSON_PATH):
         try:
@@ -87,7 +95,6 @@ def update_heatmap_tiles():
             "x": x,
             "z": z,
             "dimension": dimension,
-            # Keep the highest timestamp seen for this player across all rows
             "last_seen": max(timestamp or 0, existing.get("last_seen", 0)),
         }
 
@@ -112,19 +119,27 @@ def update_heatmap_tiles():
         tiles_dir = os.path.abspath("tiles")
         for path in git_updated_tiles:
             subprocess.run(["git", "add", path], cwd=tiles_dir, check=True)
-        subprocess.run(
-            [
-                "git",
-                "commit",
-                "-m",
-                f"Heatmap & Data Update: {len(git_updated_tiles)} files modified",
-            ],
+
+        commit_res = subprocess.run(
+            ["git", "commit", "--amend", "-m", "update map tiles"],
             cwd=tiles_dir,
-            check=True,
+            capture_output=True,
+            text=True,
         )
-        subprocess.run(["git", "push", "origin", "main"], cwd=tiles_dir, check=True)
+
+        if commit_res.returncode != 0:
+            subprocess.run(
+                ["git", "commit", "-m", "update map tiles"],
+                cwd=tiles_dir,
+                check=True,
+            )
+
+        subprocess.run(
+            ["git", "push", "-f", "origin", "main"], cwd=tiles_dir, check=True
+        )
+
     except subprocess.CalledProcessError as e:
-        print(f"Git commit failed: {e}")
+        print(f"Git routine failed: {e}")
 
 
 if __name__ == "__main__":
