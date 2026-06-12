@@ -82,7 +82,8 @@ def update_image(coordinates, dimension="overworld"):
         return
 
     center_offset = RESOLUTION // 2
-    coordinates = sorted(coordinates, key=lambda coord: (coord[0], coord[1]))
+    # coordinates = sorted(coordinates, key=lambda coord: (coord[0], coord[1]))
+    print(f"Updating {dimension} with {len(coordinates)} coordinates")
     zoom_levels = sorted(os.listdir(dimension_tiles_path), key=int)
     if not zoom_levels:
         return
@@ -116,6 +117,7 @@ def update_image(coordinates, dimension="overworld"):
 
                         # check if the pixel is within the chunk bounds
                         if 0 <= pixel_x < chunk_size and 0 <= pixel_z < chunk_size:
+                            print(f"Updating tile: {tile} ({pixel_x}, {pixel_z})")
                             tile_image.putpixel((pixel_x, pixel_z), 0)
                             isUpdated = True
 
@@ -161,14 +163,13 @@ def get_coordinates_db(dimension="overworld"):
             rows = cursor.fetchall()
 
             for row in rows:
-                parts = list(map(str.strip, row))
-                if len(parts) == 3:
-                    player_name, x, z = parts
+                if len(row) == 3:
+                    player_name, x, z = row
                 else:
                     x, z = row
                 coordinates.append((round(float(x)), round(float(z))))
                 file.write(
-                    f"{player_name}, {x}, {z}\n" if len(parts) == 3 else f"{x}, {z}\n"
+                    f"{player_name}, {x}, {z}\n" if len(row) == 3 else f"{x}, {z}\n"
                 )
 
             file.flush()

@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "cmap-fabric",
+	"version": "${version}",
+	"name": "Cmap Fabric",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/cmap-fabric/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"net.yuanmiranda.CmapFabric"
+		],
+		"client": [
+			"net.yuanmiranda.client.CmapFabricClient"
+		]
+	},
+	"mixins": [
+		"cmap-fabric.mixins.json",
+		{
+			"config": "cmap-fabric.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
