@@ -21,6 +21,7 @@ def initialize_map():
             tile_name = f"tiles/overworld/tile_{x}_{z}.png"
             blank_tile.save(tile_name, "PNG")
             count += 1
+            print(f"Generated tile: {tile_name} ({count}/3969)", end="\r")
             
     print(f"Success! Generated {count} blank tiles in 'tiles/overworld/'.")
 
