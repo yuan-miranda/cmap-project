@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Coordinate Mapper Interactive</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <div class="coordinateDisplay">
+        <div class="infoWrapper">
+            <select id="dimensionType">
+                <option value="overworld">Overworld</option>
+                <option value="nether">Nether</option>
+                <option value="the_end">End</option>
+            </select>
+            <p class="m-0">x: <span id="x">0</span> z: <span id="z">0</span> tile: <span id="tileX">0</span> <span
+                    id="tileY">0</span></p>
+        </div>
+    </div>
+
+    <div class="urls">
+        <a href="https://github.com/yuan-miranda/cmap/" target="_blank" title="GitHub Repository">
+            <img src="images/Github.svg" alt="GitHub" style="width:32px;height:32px;">
+        </a>
+    </div>
+
+    <div class="context-menu hidden" id="contextMenu">
+        <button type="button" id="copyCoordinatesBtn">
+            <span class="ctx-label">Coordinates</span>
+            <span class="ctx-value"></span>
+        </button>
+        <button type="button" id="copyTileBtn">
+            <span class="ctx-label">Tile</span>
+            <span class="ctx-value"></span>
+        </button>
+        <div class="ctx-divider"></div>
+        <button type="button" id="centerBtn">
+            <span class="ctx-label">Center</span>
+            <span class="ctx-hint">0, 0</span>
+        </button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,155 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#map {
+    height: 100vh;
+    background-color: white;
+}
+
+/* ── Coordinate display ────────────────────────────────────── */
+
+.coordinateDisplay {
+    display: flex;
+    position: fixed;
+    align-items: center;
+    bottom: 0;
+    left: 0;
+    margin: 0 0 1em 1em;
+    font-size: small;
+    z-index: 1;
+}
+
+.infoWrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.infoWrapper p span {
+    width: 5ch;
+    display: inline-block;
+    text-align: center;
+}
+
+#dimensionType {
+    font-size: 1rem;
+    font-weight: bold;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    margin-right: 0.5em;
+}
+
+#dimensionType option {
+    font-weight: normal;
+}
+
+#dimensionType:focus {
+    outline: none;
+}
+
+/* ── GitHub link ───────────────────────────────────────────── */
+
+.urls {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 0 1em 1em 0;
+    z-index: 1;
+}
+
+img {
+    vertical-align: middle;
+}
+
+/* ── Map icons ─────────────────────────────────────────────── */
+
+.map-icon {
+    border-radius: 50%;
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.map-icon:hover {
+    opacity: 0.4;
+    filter: brightness(0.9);
+}
+
+.map-icon:focus {
+    opacity: 1;
+    filter: none;
+}
+
+/* ── Context menu ──────────────────────────────────────────── */
+
+.context-menu {
+    position: absolute;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 0;
+    background: rgba(30, 30, 30, 0.92);
+    border-radius: 4px;
+    min-width: 180px;
+    font-size: 13px;
+}
+
+.context-menu button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: #e8e8e8;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.context-menu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.ctx-label {
+    color: #aaa;
+    white-space: nowrap;
+}
+
+.ctx-value {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ── Offline player icon ───────────────────────────────────── */
+
+.player-offline {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+
+/* ── Context menu extras ───────────────────────────────────── */
+
+.ctx-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 3px 0;
+}
+
+.ctx-hint {
+    color: #666;
+    font-size: 11px;
+    white-space: nowrap;
+}

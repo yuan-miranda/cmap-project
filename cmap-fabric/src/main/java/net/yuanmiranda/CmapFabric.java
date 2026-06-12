@@ -21,7 +21,7 @@ public class CmapFabric implements ModInitializer {
 	public static final String MOD_ID = "cmap-fabric";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static final String DROPLET_API_URL = "http://143.244.173.238:5000/api/coordinates";
+	private static final String API_COORDINATES = "http://143.244.173.238:5000/api/coordinates";
 
 	private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 	private static final Gson GSON = new Gson();
@@ -39,7 +39,7 @@ public class CmapFabric implements ModInitializer {
 			}
 
 			if (server.getTickCount() % 40 == 0 && !coordinateBuffer.isEmpty()) {
-				sendBufferedCoordinatesToVPS();
+				sendCoordinates();
 			}
 		});
 	}
@@ -50,8 +50,6 @@ public class CmapFabric implements ModInitializer {
 		int z = player.getBlockZ();
 
 		String rawDimension = player.level().dimension().identifier().getPath();
-
-		// Normalize before storing so comparisons are always consistent
 		String dimension = rawDimension.contains("nether") ? "nether"
 				: rawDimension.contains("end") ? "the_end"
 				  : "overworld";
@@ -66,17 +64,18 @@ public class CmapFabric implements ModInitializer {
 			update.addProperty("x", x);
 			update.addProperty("z", z);
 			update.addProperty("dimension", dimension);
+			update.addProperty("timestamp", System.currentTimeMillis() / 1000L);
 
 			coordinateBuffer.add(update);
 		}
 	}
 
-	private void sendBufferedCoordinatesToVPS() {
+	private void sendCoordinates() {
 		String jsonPayload = GSON.toJson(coordinateBuffer);
 		coordinateBuffer = new JsonArray();
 
 		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create(DROPLET_API_URL))
+				.uri(URI.create(API_COORDINATES))
 				.header("Content-Type", "application/json")
 				.POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
 				.build();
