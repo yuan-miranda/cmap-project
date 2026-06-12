@@ -2,10 +2,12 @@ import sqlite3
 import math
 import os
 import subprocess
+import json
 from PIL import Image
 
 DB_PATH = "coordinates.db"
 TILE_SIZE = 512
+PLAYERS_JSON_PATH = "tiles/players.json"
 
 HEATMAP_SCALES = [
     (210, 210, 210, 255),  # Lightest Gray
@@ -38,6 +40,16 @@ def update_heatmap_tiles():
         conn.close()
         return
 
+    player_data = {}
+    if os.path.exists(PLAYERS_JSON_PATH):
+        try:
+            with open(PLAYERS_JSON_PATH, "r") as f:
+                existing_players = json.load(f)
+                for p in existing_players:
+                    player_data[p["player_name"]] = p
+        except json.JSONDecodeError:
+            pass
+
     opened_tiles = {}
     mapped_row_ids = []
     
@@ -69,6 +81,13 @@ def update_heatmap_tiles():
         next_color = get_darker_color(current_pixel_color)
         img.putpixel((pixel_x, pixel_z), next_color)
         
+        player_data[player_name] = {
+            "player_name": player_name,
+            "x": x,
+            "z": z,
+            "dimension": dimension
+        }
+        
         mapped_row_ids.append(row_id)
         local_updated_tiles.add(tile_path)
         git_updated_tiles.add(git_path)
@@ -76,6 +95,11 @@ def update_heatmap_tiles():
     for tile_key, img in opened_tiles.items():
         dimension, tile_x, tile_z = tile_key
         img.save(f"tiles/{dimension}/tile_{tile_x}_{tile_z}.png", "PNG")
+
+    with open(PLAYERS_JSON_PATH, "w") as f:
+        json.dump(list(player_data.values()), f, indent=4)
+        
+    git_updated_tiles.add("players.json")
 
     cursor.execute(f"DELETE FROM coordinates WHERE rowid IN ({','.join(map(str, mapped_row_ids))})")
     conn.commit()
@@ -87,7 +111,7 @@ def update_heatmap_tiles():
         for path in git_updated_tiles:
             subprocess.run(["git", "add", path], cwd=tiles_dir, check=True)
             
-        subprocess.run(["git", "commit", "-m", f"Heatmap Update: {len(git_updated_tiles)} tiles modified"], cwd=tiles_dir, check=True)
+        subprocess.run(["git", "commit", "-m", f"Heatmap & Data Update: {len(git_updated_tiles)} files modified"], cwd=tiles_dir, check=True)
         subprocess.run(["git", "push", "origin", "main"], cwd=tiles_dir, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Git commit failed: {e}")
