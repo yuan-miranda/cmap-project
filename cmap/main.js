@@ -161,7 +161,7 @@ function isOnlineByTimestamp(last_seen) {
 
 async function fetchPlayerData() {
     try {
-        const res = await fetch(`/api/players`);
+        const res = await fetch(`/api/players?ts=${Date.now()}`, { cache: 'no-store' });
 
         if (!res.ok) return null;
         const all = await res.json();
