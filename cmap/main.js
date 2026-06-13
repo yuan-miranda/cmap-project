@@ -3,7 +3,7 @@ const GITHUB_REPO = 'tiles';
 const GITHUB_BRANCH = 'main';
 
 const TILE_SIZE = 512;
-const RESOLUTION = 32768;
+const RESOLUTION = 131072;
 const CENTER = { x: RESOLUTION / 2, y: -RESOLUTION / 2 };
 
 let map, tileLayer;
@@ -26,7 +26,6 @@ const playerIconOffline = makeIcon('images/Player.png', ' player-offline');
 const compassIcon = makeIcon('images/Compass.png');
 
 async function fetchLatestSha() {
-    // CRITICAL: Proxy request through Vercel to bypass Mixed Content/HTTPS issues
     const res = await fetch(`/api/sha`);
     if (!res.ok) throw new Error(`Proxy API ${res.status}`);
     const data = await res.json();
@@ -138,15 +137,22 @@ function addMarker(icon, y, x, title, text = '') {
 async function fetchPlayerData() {
     try {
         const res = await fetch(`${TILE_BASE_URL}/players.json?v=${latestSha}&t=${Date.now()}`);
-        if (!res.ok) return [];
+        
+        // If GitHack isn't ready yet (404 error), return null
+        if (!res.ok) return null; 
+        
         const all = await res.json();
         if (!all.length) return [];
+        
         const maxTs = Math.max(...all.map(p => p.last_seen ?? 0));
         return all.map(p => ({
             ...p,
             online: (maxTs - (p.last_seen ?? 0)) <= 10
         }));
-    } catch { return []; }
+    } catch { 
+        // If the network fails entirely, also return null
+        return null; 
+    }
 }
 
 function setMarkerOnline(name, online) {
@@ -192,6 +198,8 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
 
 async function updatePlayerMarkers() {
     const data = await fetchPlayerData();
+    if (data === null) return;
+
     const seen = new Set(data.map(p => p.player_name));
 
     for (const name of Object.keys(playerMarkers)) {
