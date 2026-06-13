@@ -379,14 +379,32 @@ async function updatePlayerMarkers() {
 function createMapContextMenu(e) {
     e.preventDefault();
     const menu = document.getElementById('contextMenu');
-    menu.style.top = `${e.pageY}px`;
-    menu.style.left = `${e.pageX}px`;
+    const clientX = e.originalEvent?.clientX ?? 0;
+    const clientY = e.originalEvent?.clientY ?? 0;
+    const mc_x = Math.floor(e.latlng.lng - CENTER.x);
+    const mc_z = -Math.floor(e.latlng.lat - CENTER.y);
+    const tileX = Math.floor(mc_x / TILE_SIZE);
+    const tileY = Math.floor(mc_z / TILE_SIZE);
+
+    document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent = `${mc_x}, ${mc_z}`;
+    document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
+    document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
+
+    menu.style.left = '0px';
+    menu.style.top = '0px';
     menu.classList.remove('hidden');
     function close() { menu.classList.add('hidden'); }
-    document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(`${document.getElementById('x').textContent}, ${document.getElementById('z').textContent}`); close(); };
-    document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(`${document.getElementById('tileX').textContent} ${document.getElementById('tileY').textContent}`); close(); };
+    document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent); close(); };
+    document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent); close(); };
     document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
     setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
+
+    const rect = menu.getBoundingClientRect();
+    const margin = 8;
+    const maxLeft = window.innerWidth - rect.width - margin;
+    const maxTop = window.innerHeight - rect.height - margin;
+    menu.style.left = `${Math.max(margin, Math.min(clientX, maxLeft))}px`;
+    menu.style.top = `${Math.max(margin, Math.min(clientY, maxTop))}px`;
 }
 
 function dimensionTypeListener() {
@@ -422,7 +440,7 @@ function stopInterval() { clearInterval(intervalId); intervalId = null; }
 function eventListener() {
     const mapEl = document.getElementById('map');
     mapEl.addEventListener('mousedown', e => { if (e.button === 0) { mapEl.style.cursor = 'grabbing'; stopInterval(); } });
-    mapEl.addEventListener('mouseup', e => { if (e.button === 0) { mapEl.style.cursor = 'grab'; startInterval(); } });
+    mapEl.addEventListener('mouseup', e => { if (e.button === 0) { mapEl.style.cursor = 'crosshair'; startInterval(); } });
     mapEl.addEventListener('contextmenu', createMapContextMenu);
     document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
     document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
