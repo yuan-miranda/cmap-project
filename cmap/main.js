@@ -285,22 +285,29 @@ function updateEdgeIndicator(name) {
     el.classList.remove('hidden');
     el.classList.toggle('offline', !entry.online);
 
+    const playerPanelEl = document.getElementById('playerPanel');
+    const playerPanelRect = playerPanelEl ? playerPanelEl.getBoundingClientRect() : null;
+    const playerPanelClearance = playerPanelRect ? (W - playerPanelRect.left) + EDGE_MARGIN : EDGE_MARGIN;
+
     const marginTop = EDGE_MARGIN;
     const marginBottom = EDGE_MARGIN + 44;
-    const marginSide = EDGE_MARGIN;
+    const marginLeft = EDGE_MARGIN;
     const cx = W / 2, cy = H / 2;
     const dx = pt.x - cx, dy = pt.y - cy;
-    const halfW = cx - marginSide;
-
     const halfHUp = cy - marginTop;
     const halfHDown = cy - marginBottom;
     const halfH = dy >= 0 ? halfHDown : halfHUp;
+    const halfWRight = dy < 0 ? cx - playerPanelClearance : cx - EDGE_MARGIN;
+    const halfWLeft = cx - marginLeft;
+    const halfW = dx >= 0 ? halfWRight : halfWLeft;
     const absDx = Math.abs(dx), absDy = Math.abs(dy);
     let ex, ey;
     if (absDx < 0.001 && absDy < 0.001) { ex = cx; ey = marginTop; }
     else if (absDx === 0 || halfW / absDx >= halfH / absDy) {
         ey = cy + Math.sign(dy) * halfH;
         ex = cx + (absDy > 0.001 ? dx * (halfH / absDy) : 0);
+        ex = Math.min(ex, cx + halfWRight);
+        ex = Math.max(ex, cx - halfWLeft);
     } else {
         ex = cx + Math.sign(dx) * halfW;
         ey = cy + (absDx > 0.001 ? dy * (halfW / absDx) : 0);
