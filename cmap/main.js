@@ -51,6 +51,18 @@ function refreshPlayerMarkerAppearance(name) {
     entry.marker.setIcon(getPlayerIconForEntry(entry, followedPlayer === name));
 }
 
+function syncFollowedPlayerView(animate = true) {
+    if (!map || !followedPlayer) return;
+    const entry = playerMarkers[followedPlayer];
+    if (!entry) return;
+    const currentDim = getCurrentDimension();
+    if (entry.dimension && entry.dimension !== currentDim) return;
+    const target = entry.marker.getLatLng();
+    if (!map.getCenter().equals(target)) {
+        map.setView(target, map.getZoom(), { animate });
+    }
+}
+
 async function fetchLatestSha() {
     const res = await fetch(`/api/sha`);
     if (!res.ok) throw new Error(`Proxy API ${res.status}`);
@@ -149,7 +161,7 @@ function isOnlineByTimestamp(last_seen) {
 
 async function fetchPlayerData() {
     try {
-        const res = await fetch(`${TILE_BASE_URL}/players.json?v=${latestSha}&t=${Date.now()}`);
+        const res = await fetch(`/api/players?v=${latestSha}&t=${Date.now()}`);
         if (!res.ok) return null;
         const all = await res.json();
         return all.map(p => ({ ...p, online: isOnlineByTimestamp(p.last_seen) }));
@@ -242,10 +254,7 @@ function focusPlayer(name) {
         select.dispatchEvent(new Event('change'));
         return;
     }
-    const target = entry.marker.getLatLng();
-    if (!map.getCenter().equals(target)) {
-        map.setView(target, map.getZoom(), { animate: true });
-    }
+    syncFollowedPlayerView(true);
 }
 
 function updatePlayerPanel() {
@@ -320,10 +329,6 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         const marker = addMarker(online ? playerIcon : playerIconOffline, mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
         playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
     }
-    if (online && followedPlayer === playerName) {
-        const target = L.latLng(mapY, mapX);
-        if (!map.getCenter().equals(target)) map.setView(target, map.getZoom(), { animate: false });
-    }
     refreshPlayerMarkerAppearance(playerName);
     updateEdgeIndicator(playerName);
 }
@@ -334,6 +339,7 @@ async function updatePlayerMarkers() {
     for (const { player_name, x, z, dimension, online, last_seen } of data) {
         updateOrAddPlayerMarker(player_name, dimension, x + CENTER.x, -z + CENTER.y, x, z, online, last_seen);
     }
+    syncFollowedPlayerView(true);
     updatePlayerPanel();
     updateAllEdgeIndicators();
 }
@@ -369,6 +375,7 @@ function dimensionTypeListener() {
         displayCoordinates();
         addMarker(compassIcon, CENTER.y, CENTER.x, 'spawn', '0, 0');
         await updatePlayerMarkers();
+        syncFollowedPlayerView(true);
     });
     const saved = localStorage.getItem('dimensionType');
     if (saved) select.value = saved;

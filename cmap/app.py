@@ -2,6 +2,8 @@ import subprocess
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
+import json
+import os
 import uvicorn
 
 app = FastAPI()
@@ -15,6 +17,7 @@ app.add_middleware(
 )
 
 DB_PATH = "coordinates.db"
+PLAYERS_JSON_PATH = os.path.join("tiles", "players.json")
 
 conn = sqlite3.connect(DB_PATH)
 conn.execute("""
@@ -39,6 +42,15 @@ def get_sha():
         return {"sha": result.strip()}
     except Exception:
         return {"sha": "main"}
+
+
+@app.get("/api/players")
+def get_players():
+    try:
+        with open(PLAYERS_JSON_PATH, "r", encoding="utf-8") as file:
+            return json.load(file)
+    except Exception:
+        return []
 
 
 @app.post("/api/coordinates")
