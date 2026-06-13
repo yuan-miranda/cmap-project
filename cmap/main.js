@@ -65,6 +65,7 @@ function syncFollowedPlayerView(animate = true) {
     if (!map || !followedPlayer) return;
     const entry = playerMarkers[followedPlayer];
     if (!entry) return;
+    syncCoordinateDisplayToFollowed();
     const currentDim = getCurrentDimension();
     if (entry.dimension && entry.dimension !== currentDim) {
         if (!pendingFollowDimensionSwitch) switchDimension(entry.dimension);
@@ -143,14 +144,30 @@ function createMapInstance() {
     map.on('move zoom', updateAllEdgeIndicators);
 }
 
+function setCoordinateDisplay(mc_x, mc_z) {
+    document.getElementById('x').textContent = mc_x;
+    document.getElementById('z').textContent = mc_z;
+    document.getElementById('tileX').textContent = Math.floor(mc_x / TILE_SIZE);
+    document.getElementById('tileY').textContent = Math.floor(mc_z / TILE_SIZE);
+}
+
+function setCoordinateDisplayFromLatLng(latlng) {
+    const mc_x = Math.floor(latlng.lng - CENTER.x);
+    const mc_z = -Math.floor(latlng.lat - CENTER.y);
+    setCoordinateDisplay(mc_x, mc_z);
+}
+
+function syncCoordinateDisplayToFollowed() {
+    if (!followedPlayer) return false;
+    const entry = playerMarkers[followedPlayer];
+    if (!entry) return false;
+    setCoordinateDisplay(entry.mc_x, entry.mc_z);
+    return true;
+}
+
 function displayCoordinates() {
     map.on('mousemove', ({ latlng }) => {
-        const mc_x = Math.floor(latlng.lng - CENTER.x);
-        const mc_z = -Math.floor(latlng.lat - CENTER.y);
-        document.getElementById('x').textContent = mc_x;
-        document.getElementById('z').textContent = mc_z;
-        document.getElementById('tileX').textContent = Math.floor(mc_x / TILE_SIZE);
-        document.getElementById('tileY').textContent = Math.floor(mc_z / TILE_SIZE);
+        setCoordinateDisplayFromLatLng(latlng);
     });
 }
 
@@ -261,6 +278,7 @@ function focusPlayer(name) {
         refreshPlayerMarkerAppearance(previousFollowed);
         refreshPlayerMarkerAppearance(followedPlayer);
     }
+    syncCoordinateDisplayToFollowed();
     updatePlayerPanel();
     if (entry.dimension && entry.dimension !== currentDim) {
         switchDimension(entry.dimension);
@@ -298,6 +316,7 @@ function updatePlayerPanel() {
             if (followedPlayer === name) {
                 followedPlayer = null;
                 refreshPlayerMarkerAppearance(name);
+                if (map) setCoordinateDisplayFromLatLng(map.getCenter());
                 updatePlayerPanel();
             }
             else focusPlayer(name);
@@ -343,6 +362,7 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
     }
     refreshPlayerMarkerAppearance(playerName);
     updateEdgeIndicator(playerName);
+    if (playerName === followedPlayer) syncCoordinateDisplayToFollowed();
 }
 
 async function updatePlayerMarkers() {
@@ -385,6 +405,7 @@ function dimensionTypeListener() {
         createMapInstance();
         addTileLayer(select.value);
         displayCoordinates();
+        setCoordinateDisplayFromLatLng(map.getCenter());
         addMarker(compassIcon, CENTER.y, CENTER.x, 'spawn', '0, 0');
         await updatePlayerMarkers();
         syncFollowedPlayerView(true);
