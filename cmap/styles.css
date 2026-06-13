@@ -11,9 +11,8 @@ body {
 #map {
     height: 100vh;
     background-color: white;
+    cursor: crosshair;
 }
-
-/* ── Coordinate display ────────────────────────────────────── */
 
 .coordinateDisplay {
     display: flex;
@@ -23,7 +22,7 @@ body {
     left: 0;
     margin: 0 0 1em 1em;
     font-size: small;
-    z-index: 1;
+    z-index: 1001;
 }
 
 .infoWrapper {
@@ -32,9 +31,8 @@ body {
 }
 
 .infoWrapper p span {
-    width: 5ch;
+    width: 8ch;
     display: inline-block;
-    text-align: center;
 }
 
 #dimensionType {
@@ -43,7 +41,7 @@ body {
     background-color: transparent;
     border: none;
     cursor: pointer;
-    margin-right: 0.5em;
+    margin-bottom: 0.2em;
 }
 
 #dimensionType option {
@@ -61,7 +59,7 @@ body {
     bottom: 0;
     right: 0;
     margin: 0 1em 1em 0;
-    z-index: 1;
+    z-index: 1001;
 }
 
 img {
@@ -89,7 +87,7 @@ img {
 
 .context-menu {
     position: absolute;
-    z-index: 1000;
+    z-index: 1001;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -152,4 +150,176 @@ img {
     color: #666;
     font-size: 11px;
     white-space: nowrap;
+}
+
+/* Edge indicators */
+#edgeIndicators { position: fixed; inset: 0; pointer-events: none; z-index: 1001; }
+
+.edge-indicator {
+    position: absolute;
+    pointer-events: all;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+}
+
+.edge-indicator.hidden { display: none !important; }
+.edge-indicator.offline { opacity: 0.4; }
+.edge-indicator.offline .edge-sprite { filter: grayscale(1); }
+.edge-indicator:hover { opacity: 0.65; }
+
+/* Different-dimension badge tint */
+.edge-indicator.diff-dim .edge-sprite { filter: hue-rotate(200deg) brightness(1.2); }
+.edge-indicator.offline.diff-dim .edge-sprite { filter: grayscale(1) hue-rotate(200deg); }
+
+.edge-sprite {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 3px rgba(0,0,0,0.9));
+}
+
+.edge-label {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    font-weight: bold;
+    color: #fff;
+    background: rgba(0,0,0,0.6);
+    border-radius: 3px;
+    padding: 1px 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+    line-height: 1.3;
+}
+
+/* ── Player panel ──────────────────────────────────────────── */
+
+.player-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    margin: 1em 1em 0 0;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.player-panel-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: rgba(30, 30, 30, 0.85);
+    border: none;
+    border-radius: 4px;
+    color: #e8e8e8;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.player-panel-toggle:hover {
+    background: rgba(50, 50, 50, 0.95);
+}
+
+#playerPanelCount {
+    font-variant-numeric: tabular-nums;
+    min-width: 1ch;
+    text-align: center;
+}
+
+.player-panel-dropdown {
+    margin-top: 4px;
+    background: rgba(30, 30, 30, 0.92);
+    border-radius: 4px;
+    min-width: 160px;
+    max-height: 260px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.player-panel-header {
+    font-size: 11px;
+    font-weight: bold;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 7px 12px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.player-panel-list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+}
+
+.player-panel-empty {
+    font-size: 12px;
+    color: #666;
+    padding: 8px 12px;
+    text-align: center;
+}
+
+.player-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    color: #e8e8e8;
+    font-size: 13px;
+}
+
+.player-panel-item:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+.player-panel-item.followed {
+    background: rgba(255,255,255,0.06);
+}
+
+.player-panel-item.offline {
+    opacity: 0.45;
+}
+
+.player-panel-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #555;
+    flex-shrink: 0;
+}
+
+.player-panel-dot.online {
+    background: #4caf50;
+    box-shadow: 0 0 4px #4caf50aa;
+}
+
+.player-panel-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-panel-following {
+    font-size: 10px;
+    color: #888;
+    white-space: nowrap;
+    font-style: italic;
+}
+
+.player-panel-dim {
+    font-size: 10px;
+    color: #6af;
+    background: rgba(100,170,255,0.12);
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    text-transform: capitalize;
 }

@@ -31,6 +31,19 @@
         </a>
     </div>
 
+    <div class="player-panel" id="playerPanel">
+        <button class="player-panel-toggle" id="playerPanelToggle" title="Players">
+            <img src="images/Player.png" alt="Players" style="width:16px;height:16px;image-rendering:pixelated;">
+            <span id="playerPanelCount">0</span>
+        </button>
+        <div class="player-panel-dropdown hidden" id="playerPanelDropdown">
+            <div class="player-panel-header">Players</div>
+            <div class="player-panel-list" id="playerPanelList">
+                <div class="player-panel-empty">No players online</div>
+            </div>
+        </div>
+    </div>
+
     <div class="context-menu hidden" id="contextMenu">
         <button type="button" id="copyCoordinatesBtn">
             <span class="ctx-label">Coordinates</span>
@@ -46,6 +59,8 @@
             <span class="ctx-hint">0, 0</span>
         </button>
     </div>
+
+    <div id="edgeIndicators"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="main.js"></script>

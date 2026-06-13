@@ -5,6 +5,7 @@ const GITHUB_BRANCH = 'main';
 const TILE_SIZE = 512;
 const RESOLUTION = 131072;
 const CENTER = { x: RESOLUTION / 2, y: -RESOLUTION / 2 };
+const OFFLINE_THRESHOLD_S = 60;
 
 let map, tileLayer;
 let intervalId = null;
@@ -14,10 +15,13 @@ let TILE_BASE_URL = '';
 const playerMarkers = {};
 let followedPlayer = null;
 
+const edgeIndicatorEls = {};
+const EDGE_MARGIN = 32;
+
 const makeIcon = (url, extra = '') => L.icon({
     iconUrl: url,
     iconSize: [16, 16],
-    iconAnchor: [0, 0],
+    iconAnchor: [8, 8],
     className: `map-icon${extra}`
 });
 
@@ -53,28 +57,17 @@ async function refreshShaAndTiles() {
 }
 
 const HeatmapTileLayer = L.GridLayer.extend({
-    options: {
-        tileSize: TILE_SIZE,
-        dimension: 'overworld',
-        className: 'heatmap-grid',
-        minNativeZoom: 0,
-        maxNativeZoom: 0
-    },
+    options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
     createTile(coords, done) {
         const wrapper = document.createElement('div');
         wrapper.style.cssText = 'width:100%;height:100%;overflow:hidden;';
-
         const img = document.createElement('img');
-        img.alt = '';
         img.style.cssText = 'width:100%;height:100%;display:block;image-rendering:pixelated;';
-
         const tileX = coords.x - (CENTER.x / TILE_SIZE);
         const tileZ = coords.y + (CENTER.y / TILE_SIZE);
         img.src = `${TILE_BASE_URL}/${this.options.dimension}/tile_${tileX}_${tileZ}.png`;
-
         img.onload = () => done(null, wrapper);
         img.onerror = () => { img.style.display = 'none'; wrapper.style.border = 'none'; done(null, wrapper); };
-
         wrapper.appendChild(img);
         return wrapper;
     }
@@ -89,25 +82,18 @@ function createMapInstance() {
     const savedLat = parseFloat(localStorage.getItem('mapLat')) || CENTER.y;
     const savedLng = parseFloat(localStorage.getItem('mapLng')) || CENTER.x;
     const savedZoom = parseFloat(localStorage.getItem('mapZoom')) || 0;
-
     map = L.map('map', {
-        crs: L.CRS.Simple,
-        minZoom: 0,
-        maxZoom: 4,
-        zoomSnap: 1,
-        zoomDelta: 1,
-        zoomControl: false,
-        maxBounds: [[0, RESOLUTION], [-RESOLUTION, 0]],
-        maxBoundsViscosity: 0.7,
-        attributionControl: false,
+        crs: L.CRS.Simple, minZoom: 0, maxZoom: 4, zoomSnap: 1, zoomDelta: 1, zoomControl: false,
+        maxBounds: [[0, RESOLUTION], [-RESOLUTION, 0]], maxBoundsViscosity: 0.7, attributionControl: false,
     }).setView([savedLat, savedLng], savedZoom);
-
     map.on('moveend zoomend', () => {
         const c = map.getCenter();
         localStorage.setItem('mapLat', c.lat);
         localStorage.setItem('mapLng', c.lng);
         localStorage.setItem('mapZoom', map.getZoom());
+        updateAllEdgeIndicators();
     });
+    map.on('move zoom', updateAllEdgeIndicators);
 }
 
 function displayCoordinates() {
@@ -134,25 +120,18 @@ function addMarker(icon, y, x, title, text = '') {
     return marker;
 }
 
+function isOnlineByTimestamp(last_seen) {
+    if (!last_seen) return false;
+    return (Date.now() / 1000 - last_seen) <= OFFLINE_THRESHOLD_S;
+}
+
 async function fetchPlayerData() {
     try {
         const res = await fetch(`${TILE_BASE_URL}/players.json?v=${latestSha}&t=${Date.now()}`);
-        
-        // If GitHack isn't ready yet (404 error), return null
-        if (!res.ok) return null; 
-        
+        if (!res.ok) return null;
         const all = await res.json();
-        if (!all.length) return [];
-        
-        const maxTs = Math.max(...all.map(p => p.last_seen ?? 0));
-        return all.map(p => ({
-            ...p,
-            online: (maxTs - (p.last_seen ?? 0)) <= 10
-        }));
-    } catch { 
-        // If the network fails entirely, also return null
-        return null; 
-    }
+        return all.map(p => ({ ...p, online: isOnlineByTimestamp(p.last_seen) }));
+    } catch { return null; }
 }
 
 function setMarkerOnline(name, online) {
@@ -160,141 +139,215 @@ function setMarkerOnline(name, online) {
     if (!entry) return;
     entry.online = online;
     entry.marker.setIcon(online ? playerIcon : playerIconOffline);
+    updateEdgeIndicator(name);
+    updatePlayerPanel();
 }
 
-function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, online) {
-    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
-    const entry = playerMarkers[playerName];
+function getOrCreateEdgeEl(name) {
+    if (edgeIndicatorEls[name]) return edgeIndicatorEls[name];
+    const el = document.createElement('div');
+    el.className = 'edge-indicator';
+    el.innerHTML = `<img class="edge-sprite" src="images/Player.png" alt="${name}">`;
+    el.addEventListener('click', () => focusPlayer(name));
+    document.getElementById('edgeIndicators').appendChild(el);
+    edgeIndicatorEls[name] = el;
+    return el;
+}
 
-    if (dimension !== currentDim) {
-        if (followedPlayer === playerName) {
-            const select = document.getElementById('dimensionType');
-            select.value = dimension;
-            select.dispatchEvent(new Event('change'));
-        }
+function removeEdgeIndicator(name) {
+    if (edgeIndicatorEls[name]) {
+        edgeIndicatorEls[name].remove();
+        delete edgeIndicatorEls[name];
+    }
+}
+
+function updateEdgeIndicator(name) {
+    const entry = playerMarkers[name];
+    if (!entry) { removeEdgeIndicator(name); return; }
+    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const differentDim = entry.dimension && entry.dimension !== currentDim;
+    const mapEl = document.getElementById('map');
+    const W = mapEl.clientWidth, H = mapEl.clientHeight;
+    let onScreen = false;
+    if (!differentDim) {
+        const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
+        const pad = 24;
+        onScreen = pt.x >= pad && pt.x <= W - pad && pt.y >= pad && pt.y <= H - pad;
+    }
+    if (onScreen) {
+        if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
         return;
     }
+    const el = getOrCreateEdgeEl(name);
+    el.classList.remove('hidden');
+    el.classList.toggle('offline', !entry.online);
+    el.classList.toggle('diff-dim', !!differentDim);
+    const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
+    const cx = W / 2, cy = H / 2;
+    const dx = pt.x - cx, dy = pt.y - cy;
+    const halfW = cx - EDGE_MARGIN, halfH = cy - EDGE_MARGIN;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    let ex, ey;
+    if (absDx < 0.001 && absDy < 0.001) { ex = cx; ey = EDGE_MARGIN; }
+    else if (absDx === 0 || halfW / absDx >= halfH / absDy) {
+        ey = cy + Math.sign(dy) * halfH;
+        ex = cx + (absDy > 0.001 ? dx * (halfH / absDy) : 0);
+    } else {
+        ex = cx + Math.sign(dx) * halfW;
+        ey = cy + (absDx > 0.001 ? dy * (halfW / absDx) : 0);
+    }
+    el.style.left = `${Math.round(ex - 10)}px`;
+    el.style.top = `${Math.round(ey - 10)}px`;
+}
 
+function updateAllEdgeIndicators() {
+    for (const name of Object.keys(playerMarkers)) updateEdgeIndicator(name);
+}
+
+function focusPlayer(name) {
+    const entry = playerMarkers[name];
+    if (!entry) return;
+    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    if (entry.dimension && entry.dimension !== currentDim) {
+        followedPlayer = name;
+        const select = document.getElementById('dimensionType');
+        select.value = entry.dimension;
+        select.dispatchEvent(new Event('change'));
+        return;
+    }
+    followedPlayer = name;
+    map.setView(entry.marker.getLatLng(), map.getZoom(), { animate: true });
+    updatePlayerPanel();
+}
+
+function updatePlayerPanel() {
+    const list = document.getElementById('playerPanelList');
+    const countEl = document.getElementById('playerPanelCount');
+    const names = Object.keys(playerMarkers);
+    countEl.textContent = names.filter(n => playerMarkers[n].online).length;
+    if (names.length === 0) {
+        list.innerHTML = '<div class="player-panel-empty">No players loaded</div>';
+        return;
+    }
+    names.sort((a, b) => (playerMarkers[a].online ? 0 : 1) - (playerMarkers[b].online ? 0 : 1) || a.localeCompare(b));
+    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    list.innerHTML = names.map(name => {
+        const entry = playerMarkers[name];
+        const isFollowed = followedPlayer === name;
+        const diffDim = entry.dimension && entry.dimension !== currentDim;
+        return `
+            <div class="player-panel-item${isFollowed ? ' followed' : ''}${!entry.online ? ' offline' : ''}" data-name="${name}">
+                <span class="player-panel-dot${entry.online ? ' online' : ''}"></span>
+                <span class="player-panel-name">${name}</span>
+                ${diffDim ? `<span class="player-panel-dim">${entry.dimension.replace('the_', '')}</span>` : ''}
+            </div>`;
+    }).join('');
+    list.querySelectorAll('.player-panel-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const name = el.dataset.name;
+            if (followedPlayer === name) { followedPlayer = null; updatePlayerPanel(); }
+            else focusPlayer(name);
+        });
+    });
+}
+
+function togglePlayerPanel() { document.getElementById('playerPanelDropdown').classList.toggle('hidden'); }
+
+function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, online, last_seen) {
+    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const entry = playerMarkers[playerName];
     if (entry) {
+        entry.dimension = dimension;
+        entry.last_seen = last_seen;
+        entry.mc_x = mc_x;
+        entry.mc_z = mc_z;
+    }
+    if (dimension !== currentDim) {
+        if (!entry) {
+            const marker = L.marker([mapY, mapX]);
+            marker.bindPopup(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
+            playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
+        } else {
+            if (entry.online !== online) {
+                entry.online = online;
+                entry.marker.setIcon(online ? playerIcon : playerIconOffline);
+            }
+        }
+        updateEdgeIndicator(playerName);
+        updatePlayerPanel();
+        return;
+    }
+    if (entry) {
+        if (!map.hasLayer(entry.marker)) entry.marker.addTo(map);
         entry.marker.setLatLng([mapY, mapX]);
+        entry.marker.setPopupContent(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
         if (entry.online !== online) setMarkerOnline(playerName, online);
     } else {
-        const marker = addMarker(
-            online ? playerIcon : playerIconOffline,
-            mapY, mapX, playerName,
-            `${playerName}<br>x: ${mc_x}, z: ${mc_z}`
-        );
-        playerMarkers[playerName] = { marker, online };
-        marker.on('dblclick', () => {
-            followedPlayer = (followedPlayer === playerName) ? null : playerName;
-            map.setView([mapY, mapX], map.getZoom(), { animate: true });
-        });
+        const marker = addMarker(online ? playerIcon : playerIconOffline, mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
+        playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
     }
-
-    if (online && followedPlayer === playerName) {
-        map.setView([mapY, mapX], map.getZoom(), { animate: true });
-    }
+    if (online && followedPlayer === playerName) map.setView([mapY, mapX], map.getZoom(), { animate: true });
+    updateEdgeIndicator(playerName);
 }
 
 async function updatePlayerMarkers() {
     const data = await fetchPlayerData();
     if (data === null) return;
-
-    const seen = new Set(data.map(p => p.player_name));
-
-    for (const name of Object.keys(playerMarkers)) {
-        if (!seen.has(name) && playerMarkers[name].online) {
-            setMarkerOnline(name, false);
-        }
+    for (const { player_name, x, z, dimension, online, last_seen } of data) {
+        updateOrAddPlayerMarker(player_name, dimension, x + CENTER.x, -z + CENTER.y, x, z, online, last_seen);
     }
-
-    for (const { player_name, x, z, dimension, online } of data) {
-        updateOrAddPlayerMarker(player_name, dimension, x + CENTER.x, -z + CENTER.y, x, z, online);
-    }
+    updatePlayerPanel();
+    updateAllEdgeIndicators();
 }
 
 function createMapContextMenu(e) {
     e.preventDefault();
-
     const menu = document.getElementById('contextMenu');
-    const coordRow = document.getElementById('copyCoordinatesBtn');
-    const tileRow = document.getElementById('copyTileBtn');
-    const centerRow = document.getElementById('centerBtn');
-
-    const coordinates = `${document.getElementById('x').textContent}, ${document.getElementById('z').textContent}`;
-    const tile = `${document.getElementById('tileX').textContent} ${document.getElementById('tileY').textContent}`;
-
-    coordRow.querySelector('.ctx-value').textContent = coordinates;
-    tileRow.querySelector('.ctx-value').textContent = tile;
-
     menu.style.top = `${e.pageY}px`;
     menu.style.left = `${e.pageX}px`;
     menu.classList.remove('hidden');
-
     function close() { menu.classList.add('hidden'); }
-
-    coordRow.onclick = () => { navigator.clipboard.writeText(coordinates); close(); };
-    tileRow.onclick = () => { navigator.clipboard.writeText(tile); close(); };
-    centerRow.onclick = () => { centerToOrigin(); close(); };
-
+    document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(`${document.getElementById('x').textContent}, ${document.getElementById('z').textContent}`); close(); };
+    document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(`${document.getElementById('tileX').textContent} ${document.getElementById('tileY').textContent}`); close(); };
+    document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
     setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
 }
 
 function dimensionTypeListener() {
     const select = document.getElementById('dimensionType');
-
     select.addEventListener('change', async () => {
         if (map) {
-            const c = map.getCenter();
-            localStorage.setItem('mapLat', c.lat);
-            localStorage.setItem('mapLng', c.lng);
+            localStorage.setItem('mapLat', map.getCenter().lat);
+            localStorage.setItem('mapLng', map.getCenter().lng);
             localStorage.setItem('mapZoom', map.getZoom());
             map.remove();
         }
-
+        Object.keys(edgeIndicatorEls).forEach(k => { edgeIndicatorEls[k].remove(); delete edgeIndicatorEls[k]; });
         Object.keys(playerMarkers).forEach(k => delete playerMarkers[k]);
         localStorage.setItem('dimensionType', select.value);
-
         await resolveLatestSha();
-
         createMapInstance();
         addTileLayer(select.value);
         displayCoordinates();
         addMarker(compassIcon, CENTER.y, CENTER.x, 'spawn', '0, 0');
-
         await updatePlayerMarkers();
     });
-
     const saved = localStorage.getItem('dimensionType');
     if (saved) select.value = saved;
     select.dispatchEvent(new Event('change'));
 }
 
-function startInterval() {
-    if (intervalId !== null) return;
-
-    intervalId = setInterval(async () => {
-        await refreshShaAndTiles();
-        await updatePlayerMarkers();
-    }, 10_000);
-}
-
-function stopInterval() {
-    if (intervalId === null) return;
-    clearInterval(intervalId);
-    intervalId = null;
-}
+function startInterval() { if (!intervalId) intervalId = setInterval(async () => { await refreshShaAndTiles(); await updatePlayerMarkers(); }, 10_000); }
+function stopInterval() { clearInterval(intervalId); intervalId = null; }
 
 function eventListener() {
     const mapEl = document.getElementById('map');
     mapEl.addEventListener('mousedown', e => { if (e.button === 0) { mapEl.style.cursor = 'grabbing'; stopInterval(); } });
     mapEl.addEventListener('mouseup', e => { if (e.button === 0) { mapEl.style.cursor = 'grab'; startInterval(); } });
     mapEl.addEventListener('contextmenu', createMapContextMenu);
-
-    document.addEventListener('keydown', e => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.isContentEditable) return;
-        if (e.key === 'c' || e.key === 'C') centerToOrigin();
-    });
+    document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
+    document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
+    document.addEventListener('click', e => { if (!document.getElementById('playerPanel').contains(e.target)) document.getElementById('playerPanelDropdown').classList.add('hidden'); });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
