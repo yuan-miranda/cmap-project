@@ -285,7 +285,7 @@ function updateEdgeIndicator(name) {
     el.classList.toggle('offline', !entry.online);
     const cx = W / 2, cy = H / 2;
     const dx = pt.x - cx, dy = pt.y - cy;
-    const halfW = cx - EDGE_MARGIN, halfH = cy - EDGE_MARGIN;
+    const halfW = cx - (EDGE_MARGIN / 2), halfH = cy - EDGE_MARGIN;
     const absDx = Math.abs(dx), absDy = Math.abs(dy);
     let ex, ey;
     if (absDx < 0.001 && absDy < 0.001) { ex = cx; ey = EDGE_MARGIN; }
