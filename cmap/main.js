@@ -161,7 +161,8 @@ function isOnlineByTimestamp(last_seen) {
 
 async function fetchPlayerData() {
     try {
-        const res = await fetch(`/api/players?v=${latestSha}&t=${Date.now()}`);
+        const res = await fetch(`/api/players`);
+
         if (!res.ok) return null;
         const all = await res.json();
         return all.map(p => ({ ...p, online: isOnlineByTimestamp(p.last_seen) }));
