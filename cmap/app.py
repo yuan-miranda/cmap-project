@@ -29,8 +29,8 @@ conn.execute("""
 conn.execute("PRAGMA journal_mode=WAL;")
 conn.close()
 
-@app.get("/api/latest-sha")
-def get_latest_sha():
+@app.get("/api/sha")
+def get_sha():
     try:
         result = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], 

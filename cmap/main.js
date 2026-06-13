@@ -26,8 +26,9 @@ const playerIconOffline = makeIcon('images/Player.png', ' player-offline');
 const compassIcon = makeIcon('images/Compass.png');
 
 async function fetchLatestSha() {
-    const res = await fetch(`http://143.244.173.238:5000/api/latest-sha`);
-    if (!res.ok) throw new Error(`VPS API ${res.status}`);
+    // CRITICAL: Proxy request through Vercel to bypass Mixed Content/HTTPS issues
+    const res = await fetch(`/api/sha`);
+    if (!res.ok) throw new Error(`Proxy API ${res.status}`);
     const data = await res.json();
     return data.sha.trim();
 }
@@ -49,7 +50,7 @@ async function refreshShaAndTiles() {
             TILE_BASE_URL = `https://rawcdn.githack.com/${GITHUB_USER}/${GITHUB_REPO}/${newSha}`;
             addTileLayer(localStorage.getItem('dimensionType') || 'overworld');
         }
-    } catch { /* silent */ }
+    } catch { }
 }
 
 const HeatmapTileLayer = L.GridLayer.extend({
