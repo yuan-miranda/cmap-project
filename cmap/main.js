@@ -18,7 +18,7 @@ const playerMarkers = {};
 let followedPlayer = localStorage.getItem('followedPlayer') || null;
 
 const edgeIndicatorEls = {};
-const EDGE_MARGIN = 32;
+const EDGE_MARGIN = 64;
 
 const makeIcon = (url, extra = '') => L.icon({
     iconUrl: url,
@@ -258,6 +258,10 @@ function removeEdgeIndicator(name) {
     }
 }
 
+function getVisibleViewportHeight() {
+    return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+}
+
 function updateEdgeIndicator(name) {
     const entry = playerMarkers[name];
     if (!entry) { removeEdgeIndicator(name); return; }
@@ -268,7 +272,7 @@ function updateEdgeIndicator(name) {
         return;
     }
     const mapEl = document.getElementById('map');
-    const W = mapEl.clientWidth, H = mapEl.clientHeight;
+    const W = mapEl.clientWidth, H = getVisibleViewportHeight();
     const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
     const pad = 24;
     const onScreen = pt.x >= pad && pt.x <= W - pad && pt.y >= pad && pt.y <= H - pad;
@@ -500,6 +504,10 @@ function eventListener() {
     document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
     document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
     document.addEventListener('click', e => { if (!document.getElementById('playerPanel').contains(e.target)) document.getElementById('playerPanelDropdown').classList.add('hidden'); });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateAllEdgeIndicators);
+        window.visualViewport.addEventListener('scroll', updateAllEdgeIndicators);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
