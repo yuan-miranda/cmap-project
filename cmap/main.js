@@ -26,15 +26,22 @@ const makeIcon = (url, extra = '') => L.icon({
     className: `map-icon${extra}`
 });
 
-const makePlayerIcon = ({ online = true, followed = false } = {}) => makeIcon(
-    'images/Player.png',
-    `${online ? '' : ' player-offline'}${followed ? ' player-followed' : ''}`
-);
+const playerIconCache = new Map();
 
-const playerIcon = makePlayerIcon();
-const playerIconOffline = makePlayerIcon({ online: false });
-const playerIconFollowed = makePlayerIcon({ followed: true });
-const playerIconOfflineFollowed = makePlayerIcon({ online: false, followed: true });
+function getPlayerAvatarUrl(playerName) {
+    return `https://mc-heads.net/avatar/${encodeURIComponent(playerName)}/16`;
+}
+
+function makePlayerIcon(playerName, { online = true, followed = false } = {}) {
+    const cacheKey = `${playerName}|${online ? 'online' : 'offline'}|${followed ? 'followed' : 'normal'}`;
+    if (!playerIconCache.has(cacheKey)) {
+        playerIconCache.set(cacheKey, makeIcon(
+            getPlayerAvatarUrl(playerName),
+            `${online ? '' : ' player-offline'}${followed ? ' player-followed' : ''}`
+        ));
+    }
+    return playerIconCache.get(cacheKey);
+}
 const compassIcon = makeIcon('images/Compass.png');
 
 function getCurrentDimension() {
@@ -42,8 +49,7 @@ function getCurrentDimension() {
 }
 
 function getPlayerIconForEntry(entry, isFollowed = false) {
-    if (isFollowed) return entry.online ? playerIconFollowed : playerIconOfflineFollowed;
-    return entry.online ? playerIcon : playerIconOffline;
+    return makePlayerIcon(entry.playerName, { online: entry.online, followed: isFollowed });
 }
 
 function refreshPlayerMarkerAppearance(name) {
@@ -212,7 +218,7 @@ function getOrCreateEdgeEl(name) {
     if (edgeIndicatorEls[name]) return edgeIndicatorEls[name];
     const el = document.createElement('div');
     el.className = 'edge-indicator';
-    el.innerHTML = `<img class="edge-sprite" src="images/Player.png" alt="${name}">`;
+    el.innerHTML = `<img class="edge-sprite" src="${getPlayerAvatarUrl(name)}" alt="${name}">`;
     el.addEventListener('click', () => focusPlayer(name));
     document.getElementById('edgeIndicators').appendChild(el);
     edgeIndicatorEls[name] = el;
@@ -334,12 +340,13 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         entry.last_seen = last_seen;
         entry.mc_x = mc_x;
         entry.mc_z = mc_z;
+        entry.playerName = playerName;
     }
     if (dimension !== currentDim) {
         if (!entry) {
             const marker = L.marker([mapY, mapX]);
             marker.bindPopup(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
-            playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
+            playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
         } else {
             if (entry.online !== online) {
                 entry.online = online;
@@ -357,8 +364,8 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         entry.marker.setPopupContent(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
         if (entry.online !== online) setMarkerOnline(playerName, online);
     } else {
-        const marker = addMarker(online ? playerIcon : playerIconOffline, mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
-        playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
+        const marker = addMarker(makePlayerIcon(playerName, { online }), mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
+        playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
     }
     refreshPlayerMarkerAppearance(playerName);
     updateEdgeIndicator(playerName);
