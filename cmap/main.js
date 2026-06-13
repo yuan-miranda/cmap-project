@@ -11,6 +11,7 @@ let map, tileLayer;
 let intervalId = null;
 let latestSha = '';
 let TILE_BASE_URL = '';
+let pendingFollowDimensionSwitch = false;
 
 const playerMarkers = {};
 let followedPlayer = null;
@@ -51,12 +52,24 @@ function refreshPlayerMarkerAppearance(name) {
     entry.marker.setIcon(getPlayerIconForEntry(entry, followedPlayer === name));
 }
 
+function switchDimension(dimension) {
+    const select = document.getElementById('dimensionType');
+    if (!select || !dimension || select.value === dimension) return false;
+    pendingFollowDimensionSwitch = true;
+    select.value = dimension;
+    select.dispatchEvent(new Event('change'));
+    return true;
+}
+
 function syncFollowedPlayerView(animate = true) {
     if (!map || !followedPlayer) return;
     const entry = playerMarkers[followedPlayer];
     if (!entry) return;
     const currentDim = getCurrentDimension();
-    if (entry.dimension && entry.dimension !== currentDim) return;
+    if (entry.dimension && entry.dimension !== currentDim) {
+        if (!pendingFollowDimensionSwitch) switchDimension(entry.dimension);
+        return;
+    }
     const target = entry.marker.getLatLng();
     if (!map.getCenter().equals(target)) {
         map.setView(target, map.getZoom(), { animate });
@@ -250,9 +263,7 @@ function focusPlayer(name) {
     }
     updatePlayerPanel();
     if (entry.dimension && entry.dimension !== currentDim) {
-        const select = document.getElementById('dimensionType');
-        select.value = entry.dimension;
-        select.dispatchEvent(new Event('change'));
+        switchDimension(entry.dimension);
         return;
     }
     syncFollowedPlayerView(true);
@@ -377,6 +388,7 @@ function dimensionTypeListener() {
         addMarker(compassIcon, CENTER.y, CENTER.x, 'spawn', '0, 0');
         await updatePlayerMarkers();
         syncFollowedPlayerView(true);
+        pendingFollowDimensionSwitch = false;
     });
     const saved = localStorage.getItem('dimensionType');
     if (saved) select.value = saved;
