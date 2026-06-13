@@ -406,10 +406,11 @@ async function updatePlayerMarkers() {
 function createMapContextMenu(e) {
     e.preventDefault();
     const menu = document.getElementById('contextMenu');
-    const clientX = e.originalEvent?.clientX ?? 0;
-    const clientY = e.originalEvent?.clientY ?? 0;
-    const mc_x = Math.floor(e.latlng.lng - CENTER.x);
-    const mc_z = -Math.floor(e.latlng.lat - CENTER.y);
+    const clientX = e.clientX ?? 0;
+    const clientY = e.clientY ?? 0;
+    const latlng = map ? map.mouseEventToLatLng(e) : null;
+    const mc_x = Math.floor((latlng?.lng ?? CENTER.x) - CENTER.x);
+    const mc_z = -Math.floor((latlng?.lat ?? CENTER.y) - CENTER.y);
     const tileX = Math.floor(mc_x / TILE_SIZE);
     const tileY = Math.floor(mc_z / TILE_SIZE);
 
