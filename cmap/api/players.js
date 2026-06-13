@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    const targetUrl = `http://143.244.173.238:5000/api/players`;
+    const targetUrl = `http://143.244.173.238:5000/tiles/players.json`;
 
     try {
         const response = await fetch(targetUrl, {
