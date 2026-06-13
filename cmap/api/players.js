@@ -2,7 +2,6 @@ export default async function handler(req, res) {
     const sha = typeof req.query.v === 'string' && req.query.v.trim() ? req.query.v.trim() : 'main';
     const sourceUrls = [
         `https://rawcdn.githack.com/yuan-miranda/tiles/${sha}/players.json?v=${encodeURIComponent(sha)}`,
-        `https://raw.githubusercontent.com/yuan-miranda/tiles/${sha}/players.json`,
         `https://rawcdn.githack.com/yuan-miranda/tiles/main/players.json?v=main`
     ];
 
