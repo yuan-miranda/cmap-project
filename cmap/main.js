@@ -137,7 +137,7 @@ function addMarker(icon, y, x, title, text = '') {
 
 async function fetchPlayerData() {
     try {
-        const res = await fetch(`${TILE_BASE_URL}/players.json?v=${latestSha}`);
+        const res = await fetch(`${TILE_BASE_URL}/players.json?v=${latestSha}&t=${Date.now()}`);
         if (!res.ok) return [];
         const all = await res.json();
         if (!all.length) return [];

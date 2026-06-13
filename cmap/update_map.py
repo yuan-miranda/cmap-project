@@ -33,7 +33,9 @@ def get_darker_color(current_rgba):
 
 
 def update_heatmap_tiles():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     cursor = conn.cursor()
 
     cursor.execute(

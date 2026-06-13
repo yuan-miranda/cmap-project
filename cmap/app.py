@@ -29,17 +29,17 @@ conn.execute("""
 conn.execute("PRAGMA journal_mode=WAL;")
 conn.close()
 
+
 @app.get("/api/sha")
 def get_sha():
     try:
         result = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], 
-            cwd="./tiles", 
-            text=True
+            ["git", "rev-parse", "HEAD"], cwd="./tiles", text=True
         )
         return {"sha": result.strip()}
     except Exception:
         return {"sha": "main"}
+
 
 @app.post("/api/coordinates")
 async def receive_coordinates(request: Request):
@@ -60,6 +60,7 @@ async def receive_coordinates(request: Request):
     conn.commit()
     conn.close()
     return {"status": "success"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=5000)
