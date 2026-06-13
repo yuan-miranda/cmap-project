@@ -1,7 +1,6 @@
 import subprocess
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 import sqlite3
 import json
 import os
@@ -18,6 +17,7 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TILES_DIR = os.path.join(BASE_DIR, "tiles")
 DB_PATH = os.path.join(BASE_DIR, "coordinates.db")
 PLAYERS_JSON_PATH = os.path.join(BASE_DIR, "tiles", "players.json")
 
@@ -46,20 +46,27 @@ def get_sha():
         return {"sha": "main"}
 
 
+def load_committed_players():
+    try:
+        result = subprocess.check_output(
+            ["git", "show", "HEAD:players.json"], cwd=TILES_DIR, text=True
+        )
+        return json.loads(result)
+    except Exception:
+        try:
+            with open(PLAYERS_JSON_PATH, "r", encoding="utf-8") as file:
+                return json.load(file)
+        except Exception:
+            return []
+
+
 @app.get("/api/players")
 def get_players():
-    try:
-        with open(PLAYERS_JSON_PATH, "r", encoding="utf-8") as file:
-            return json.load(file)
-    except Exception:
-        return []
-
+    return load_committed_players()
 
 @app.get("/tiles/players.json")
 def get_players_json():
-    if os.path.exists(PLAYERS_JSON_PATH):
-        return FileResponse(PLAYERS_JSON_PATH, media_type="application/json")
-    return []
+    return load_committed_players()
 
 
 @app.post("/api/coordinates")
