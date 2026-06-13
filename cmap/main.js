@@ -264,7 +264,7 @@ function dimensionTypeListener() {
 
 function startInterval() {
     if (intervalId !== null) return;
-    intervalId = setInterval(() => { refreshShaAndTiles(); updatePlayerMarkers(); }, 30_000);
+    intervalId = setInterval(() => { refreshShaAndTiles(); updatePlayerMarkers(); }, 5_000);
 }
 
 function stopInterval() {
