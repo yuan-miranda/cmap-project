@@ -142,7 +142,8 @@ const HeatmapTileLayer = L.GridLayer.extend({
             wrapper.style.outlineOffset = '-1px';
         }
         const img = document.createElement('img');
-        img.style.cssText = 'width:100%;height:100%;display:block;image-rendering:pixelated;';
+        const rendering = map && map.getZoom() < 0 ? 'auto' : 'pixelated';
+        img.style.cssText = `width:100%;height:100%;display:block;image-rendering:${rendering};`;
         const tileX = coords.x - (CENTER.x / TILE_SIZE);
         const tileZ = coords.y + (CENTER.y / TILE_SIZE);
         img.src = `${TILE_BASE_URL}/${this.options.dimension}/tile_${tileX}_${tileZ}.png`;
@@ -164,9 +165,13 @@ function createMapInstance() {
     const savedLng = parseFloat(localStorage.getItem('mapLng')) || CENTER.x;
     const savedZoom = parseFloat(localStorage.getItem('mapZoom')) || 0;
     map = L.map('map', {
-        crs: L.CRS.Simple, minZoom: 0, maxZoom: 4, zoomSnap: 1, zoomDelta: 1, zoomControl: false,
+        crs: L.CRS.Simple, minZoom: -2, maxZoom: 4, zoomSnap: 1, zoomDelta: 1, zoomControl: false,
         maxBounds: [[0, RESOLUTION], [-RESOLUTION, 0]], maxBoundsViscosity: 0.7, attributionControl: false,
     }).setView([savedLat, savedLng], savedZoom);
+    map.on('zoom', () => {
+        const rendering = map.getZoom() < 0 ? 'auto' : 'pixelated';
+        document.querySelectorAll('.heatmap-tile-wrapper img').forEach(img => { img.style.imageRendering = rendering; });
+    });
     map.on('moveend zoomend', () => {
         const c = map.getCenter();
         localStorage.setItem('mapLat', c.lat);
