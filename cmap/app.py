@@ -1,6 +1,7 @@
 import subprocess
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import sqlite3
 import json
 import os
@@ -16,8 +17,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "coordinates.db"
-PLAYERS_JSON_PATH = os.path.join("tiles", "players.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "coordinates.db")
+PLAYERS_JSON_PATH = os.path.join(BASE_DIR, "tiles", "players.json")
 
 conn = sqlite3.connect(DB_PATH)
 conn.execute("""
@@ -51,6 +53,13 @@ def get_players():
             return json.load(file)
     except Exception:
         return []
+
+
+@app.get("/tiles/players.json")
+def get_players_json():
+    if os.path.exists(PLAYERS_JSON_PATH):
+        return FileResponse(PLAYERS_JSON_PATH, media_type="application/json")
+    return []
 
 
 @app.post("/api/coordinates")
