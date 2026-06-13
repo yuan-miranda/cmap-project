@@ -116,7 +116,7 @@ img {
 /* ── Map icons ─────────────────────────────────────────────── */
 
 .map-icon {
-    border-radius: 50%;
+    border-radius: 0;
     transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
@@ -211,7 +211,7 @@ img {
 }
 
 /* Edge indicators */
-#edgeIndicators { position: fixed; inset: 0; pointer-events: none; z-index: 940; }
+#edgeIndicators { position: fixed; inset: 0; pointer-events: none; z-index: 1100; }
 
 .edge-indicator {
     position: absolute;
