@@ -264,7 +264,11 @@ function dimensionTypeListener() {
 
 function startInterval() {
     if (intervalId !== null) return;
-    intervalId = setInterval(() => { refreshShaAndTiles(); updatePlayerMarkers(); }, 10_000);
+
+    intervalId = setInterval(async () => {
+        await refreshShaAndTiles();
+        await updatePlayerMarkers();
+    }, 10_000);
 }
 
 function stopInterval() {
