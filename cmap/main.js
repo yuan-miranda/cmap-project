@@ -132,7 +132,7 @@ function toggleTileOutlines() {
 }
 
 const HeatmapTileLayer = L.GridLayer.extend({
-    options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', nativeZooms: [0] },
+    options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
     createTile(coords, done) {
         const wrapper = document.createElement('div');
         wrapper.className = 'heatmap-tile-wrapper';
@@ -164,7 +164,7 @@ function createMapInstance() {
     const savedLng = parseFloat(localStorage.getItem('mapLng')) || CENTER.x;
     const savedZoom = parseFloat(localStorage.getItem('mapZoom')) || 0;
     map = L.map('map', {
-        crs: L.CRS.Simple, minZoom: -3, maxZoom: 4, zoomSnap: 1, zoomDelta: 1, zoomControl: false,
+        crs: L.CRS.Simple, minZoom: 0, maxZoom: 4, zoomSnap: 1, zoomDelta: 1, zoomControl: false,
         maxBounds: [[0, RESOLUTION], [-RESOLUTION, 0]], maxBoundsViscosity: 0.7, attributionControl: false,
     }).setView([savedLat, savedLng], savedZoom);
     map.on('moveend zoomend', () => {
