@@ -140,6 +140,12 @@ img {
     filter: none;
 }
 
+.leaflet-pane.tile-outlines .leaflet-tile {
+    box-sizing: border-box;
+    outline: 1px solid rgba(255, 255, 255, 0.12);
+    outline-offset: -1px;
+}
+
 /* ── Context menu ──────────────────────────────────────────── */
 
 .context-menu {

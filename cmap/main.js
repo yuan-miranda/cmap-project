@@ -12,9 +12,10 @@ let intervalId = null;
 let latestSha = '';
 let TILE_BASE_URL = '';
 let pendingFollowDimensionSwitch = false;
+let tileOutlinesEnabled = localStorage.getItem('tileOutlinesEnabled') === 'true';
 
 const playerMarkers = {};
-let followedPlayer = null;
+let followedPlayer = localStorage.getItem('followedPlayer') || null;
 
 const edgeIndicatorEls = {};
 const EDGE_MARGIN = 32;
@@ -110,6 +111,22 @@ async function refreshShaAndTiles() {
     } catch { }
 }
 
+function applyTileOutlineState() {
+    const tilePane = map?.getPane('tilePane');
+    if (!tilePane) return;
+    tilePane.classList.toggle('tile-outlines', tileOutlinesEnabled);
+}
+
+function setTileOutlinesEnabled(enabled) {
+    tileOutlinesEnabled = enabled;
+    localStorage.setItem('tileOutlinesEnabled', String(enabled));
+    applyTileOutlineState();
+}
+
+function toggleTileOutlines() {
+    setTileOutlinesEnabled(!tileOutlinesEnabled);
+}
+
 const HeatmapTileLayer = L.GridLayer.extend({
     options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
     createTile(coords, done) {
@@ -130,6 +147,7 @@ const HeatmapTileLayer = L.GridLayer.extend({
 function addTileLayer(dimension) {
     if (tileLayer) map.removeLayer(tileLayer);
     tileLayer = new HeatmapTileLayer({ dimension }).addTo(map);
+    applyTileOutlineState();
 }
 
 function createMapInstance() {
@@ -280,6 +298,7 @@ function focusPlayer(name) {
     const currentDim = getCurrentDimension();
     const previousFollowed = followedPlayer;
     followedPlayer = name;
+    localStorage.setItem('followedPlayer', followedPlayer);
     if (previousFollowed !== followedPlayer) {
         refreshPlayerMarkerAppearance(previousFollowed);
         refreshPlayerMarkerAppearance(followedPlayer);
@@ -321,6 +340,7 @@ function updatePlayerPanel() {
             const name = el.dataset.name;
             if (followedPlayer === name) {
                 followedPlayer = null;
+                localStorage.removeItem('followedPlayer');
                 refreshPlayerMarkerAppearance(name);
                 if (map) setCoordinateDisplayFromLatLng(map.getCenter());
                 updatePlayerPanel();
@@ -393,6 +413,7 @@ function createMapContextMenu(e) {
     const tileX = Math.floor(mc_x / TILE_SIZE);
     const tileY = Math.floor(mc_z / TILE_SIZE);
 
+    document.getElementById('toggleTileOutlinesBtn').querySelector('.ctx-value').textContent = tileOutlinesEnabled ? 'On' : 'Off';
     document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
     document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
@@ -401,6 +422,7 @@ function createMapContextMenu(e) {
     menu.style.top = '0px';
     menu.classList.remove('hidden');
     function close() { menu.classList.add('hidden'); }
+    document.getElementById('toggleTileOutlinesBtn').onclick = () => { toggleTileOutlines(); close(); };
     document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent); close(); };
     document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent); close(); };
     document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
@@ -458,5 +480,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await resolveLatestSha();
     eventListener();
     dimensionTypeListener();
+    setTileOutlinesEnabled(tileOutlinesEnabled);
     startInterval();
 });
