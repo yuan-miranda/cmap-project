@@ -112,9 +112,13 @@ async function refreshShaAndTiles() {
 }
 
 function applyTileOutlineState() {
-    const tilePane = map?.getPane('tilePane');
+    if (!map) return;
+    const tilePane = map.getPane('tilePane');
     if (!tilePane) return;
-    tilePane.classList.toggle('tile-outlines', tileOutlinesEnabled);
+    tilePane.querySelectorAll('.heatmap-tile-wrapper').forEach(el => {
+        el.style.outline = tileOutlinesEnabled ? '1px solid rgba(0, 0, 0, 0.25)' : '';
+        el.style.outlineOffset = tileOutlinesEnabled ? '-1px' : '';
+    });
 }
 
 function setTileOutlinesEnabled(enabled) {
@@ -131,7 +135,12 @@ const HeatmapTileLayer = L.GridLayer.extend({
     options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
     createTile(coords, done) {
         const wrapper = document.createElement('div');
+        wrapper.className = 'heatmap-tile-wrapper';
         wrapper.style.cssText = 'width:100%;height:100%;overflow:hidden;';
+        if (tileOutlinesEnabled) {
+            wrapper.style.outline = '1px solid rgba(0, 0, 0, 0.25)';
+            wrapper.style.outlineOffset = '-1px';
+        }
         const img = document.createElement('img');
         img.style.cssText = 'width:100%;height:100%;display:block;image-rendering:pixelated;';
         const tileX = coords.x - (CENTER.x / TILE_SIZE);
@@ -216,7 +225,6 @@ function isOnlineByTimestamp(last_seen) {
 async function fetchPlayerData() {
     try {
         const res = await fetch(`/api/players`);
-
         if (!res.ok) return null;
         const all = await res.json();
         return all.map(p => ({ ...p, online: isOnlineByTimestamp(p.last_seen) }));
@@ -292,6 +300,18 @@ function updateAllEdgeIndicators() {
     for (const name of Object.keys(playerMarkers)) updateEdgeIndicator(name);
 }
 
+function updatePlayerPanelToggleIcon() {
+    const btn = document.getElementById('playerPanelToggle');
+    const img = btn.querySelector('img');
+    if (followedPlayer) {
+        img.src = getPlayerAvatarUrl(followedPlayer);
+        img.alt = followedPlayer;
+    } else {
+        img.src = 'images/Player.png';
+        img.alt = 'Players';
+    }
+}
+
 function focusPlayer(name) {
     const entry = playerMarkers[name];
     if (!entry) return;
@@ -301,8 +321,8 @@ function focusPlayer(name) {
     localStorage.setItem('followedPlayer', followedPlayer);
     if (previousFollowed !== followedPlayer) {
         refreshPlayerMarkerAppearance(previousFollowed);
-        refreshPlayerMarkerAppearance(followedPlayer);
     }
+    refreshPlayerMarkerAppearance(followedPlayer);
     syncCoordinateDisplayToFollowed();
     updatePlayerPanel();
     if (entry.dimension && entry.dimension !== currentDim) {
@@ -316,7 +336,10 @@ function updatePlayerPanel() {
     const list = document.getElementById('playerPanelList');
     const countEl = document.getElementById('playerPanelCount');
     const names = Object.keys(playerMarkers);
-    countEl.textContent = names.filter(n => playerMarkers[n].online).length;
+    const onlineCount = names.filter(n => playerMarkers[n].online).length;
+    const totalCount = names.length;
+    countEl.textContent = `${onlineCount}/${totalCount}`;
+    updatePlayerPanelToggleIcon();
     if (names.length === 0) {
         list.innerHTML = '<div class="player-panel-empty">No players loaded</div>';
         return;
@@ -343,9 +366,11 @@ function updatePlayerPanel() {
                 localStorage.removeItem('followedPlayer');
                 refreshPlayerMarkerAppearance(name);
                 if (map) setCoordinateDisplayFromLatLng(map.getCenter());
+                updatePlayerPanelToggleIcon();
                 updatePlayerPanel();
+            } else {
+                focusPlayer(name);
             }
-            else focusPlayer(name);
         });
     });
 }

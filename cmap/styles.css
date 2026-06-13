@@ -99,8 +99,6 @@ body {
     outline-offset: 1px;
 }
 
-/* ── GitHub link ───────────────────────────────────────────── */
-
 .urls {
     position: fixed;
     bottom: 0;
@@ -112,8 +110,6 @@ body {
 img {
     vertical-align: middle;
 }
-
-/* ── Map icons ─────────────────────────────────────────────── */
 
 .map-icon {
     border-radius: 0;
@@ -139,14 +135,6 @@ img {
 .map-icon.player-offline.player-followed {
     filter: none;
 }
-
-.leaflet-pane.tile-outlines .leaflet-tile {
-    box-sizing: border-box;
-    outline: 1px solid rgba(255, 255, 255, 0.12);
-    outline-offset: -1px;
-}
-
-/* ── Context menu ──────────────────────────────────────────── */
 
 .context-menu {
     position: absolute;
@@ -194,14 +182,10 @@ img {
     display: none !important;
 }
 
-/* ── Offline player icon ───────────────────────────────────── */
-
 .player-offline {
     opacity: 0.6;
     filter: none;
 }
-
-/* ── Context menu extras ───────────────────────────────────── */
 
 .ctx-divider {
     height: 1px;
@@ -215,7 +199,6 @@ img {
     white-space: nowrap;
 }
 
-/* Edge indicators */
 #edgeIndicators { position: fixed; inset: 0; pointer-events: none; z-index: 1100; }
 
 .edge-indicator {
@@ -231,7 +214,6 @@ img {
 .edge-indicator.offline .edge-sprite { filter: none; }
 .edge-indicator:hover { opacity: 0.65; }
 
-/* Different-dimension badge tint */
 .edge-indicator.diff-dim .edge-sprite { filter: hue-rotate(200deg) brightness(1.2); }
 .edge-indicator.offline.diff-dim .edge-sprite { filter: grayscale(1) hue-rotate(200deg); }
 
@@ -254,8 +236,6 @@ img {
     text-shadow: 0 1px 2px rgba(0,0,0,0.9);
     line-height: 1.3;
 }
-
-/* ── Player panel ──────────────────────────────────────────── */
 
 .player-panel {
     position: fixed;
@@ -287,8 +267,7 @@ img {
 }
 
 #playerPanelCount {
-    /* font-variant-numeric: tabular-nums; */
-    min-width: 2ch;
+    min-width: 4ch;
     text-align: right;
 }
 
