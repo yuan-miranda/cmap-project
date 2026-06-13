@@ -258,10 +258,6 @@ function removeEdgeIndicator(name) {
     }
 }
 
-function getVisibleViewportHeight() {
-    return (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-}
-
 function updateEdgeIndicator(name) {
     const entry = playerMarkers[name];
     if (!entry) { removeEdgeIndicator(name); return; }
@@ -272,8 +268,7 @@ function updateEdgeIndicator(name) {
         return;
     }
     const mapEl = document.getElementById('map');
-    const W = mapEl.clientWidth;
-    const H = getVisibleViewportHeight();
+    const W = mapEl.clientWidth, H = mapEl.clientHeight;
     const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
     const pad = 24;
     const onScreen = pt.x >= pad && pt.x <= W - pad && pt.y >= pad && pt.y <= H - pad;
@@ -284,30 +279,15 @@ function updateEdgeIndicator(name) {
     const el = getOrCreateEdgeEl(name);
     el.classList.remove('hidden');
     el.classList.toggle('offline', !entry.online);
-
-    const playerPanelEl = document.getElementById('playerPanel');
-    const playerPanelRect = playerPanelEl ? playerPanelEl.getBoundingClientRect() : null;
-    const playerPanelClearance = playerPanelRect ? (W - playerPanelRect.left) + EDGE_MARGIN : EDGE_MARGIN;
-
-    const marginTop = EDGE_MARGIN;
-    const marginBottom = EDGE_MARGIN + 44;
-    const marginLeft = EDGE_MARGIN;
     const cx = W / 2, cy = H / 2;
     const dx = pt.x - cx, dy = pt.y - cy;
-    const halfHUp = cy - marginTop;
-    const halfHDown = cy - marginBottom;
-    const halfH = dy >= 0 ? halfHDown : halfHUp;
-    const halfWRight = dy < 0 ? cx - playerPanelClearance : cx - EDGE_MARGIN;
-    const halfWLeft = cx - marginLeft;
-    const halfW = dx >= 0 ? halfWRight : halfWLeft;
+    const halfW = cx - EDGE_MARGIN, halfH = cy - EDGE_MARGIN;
     const absDx = Math.abs(dx), absDy = Math.abs(dy);
     let ex, ey;
-    if (absDx < 0.001 && absDy < 0.001) { ex = cx; ey = marginTop; }
+    if (absDx < 0.001 && absDy < 0.001) { ex = cx; ey = EDGE_MARGIN; }
     else if (absDx === 0 || halfW / absDx >= halfH / absDy) {
         ey = cy + Math.sign(dy) * halfH;
         ex = cx + (absDy > 0.001 ? dx * (halfH / absDy) : 0);
-        ex = Math.min(ex, cx + halfWRight);
-        ex = Math.max(ex, cx - halfWLeft);
     } else {
         ex = cx + Math.sign(dx) * halfW;
         ey = cy + (absDx > 0.001 ? dy * (halfW / absDx) : 0);
@@ -520,11 +500,6 @@ function eventListener() {
     document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
     document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
     document.addEventListener('click', e => { if (!document.getElementById('playerPanel').contains(e.target)) document.getElementById('playerPanelDropdown').classList.add('hidden'); });
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateAllEdgeIndicators);
-        window.visualViewport.addEventListener('scroll', updateAllEdgeIndicators);
-    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
