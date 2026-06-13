@@ -335,26 +335,29 @@ img {
     background: rgba(255,255,255,0.08);
 }
 
+.player-panel-avatar {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    image-rendering: pixelated;
+    border-radius: 0;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.player-panel-avatar.player-followed {
+    outline: 1px solid rgba(255, 255, 255, 0.95);
+    outline-offset: 2px;
+    transform: none;
+}
+
+.player-panel-avatar.player-offline {
+    opacity: 0.2;
+}
+
 .player-panel-item.followed {
     background: rgba(255,255,255,0.08);
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
-}
-
-.player-panel-item.offline {
-    opacity: 0.45;
-}
-
-.player-panel-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #555;
-    flex-shrink: 0;
-}
-
-.player-panel-dot.online {
-    background: #4caf50;
-    box-shadow: 0 0 4px #4caf50aa;
 }
 
 .player-panel-name {

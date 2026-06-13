@@ -310,7 +310,7 @@ function updatePlayerPanel() {
         const diffDim = entry.dimension && entry.dimension !== currentDim;
         return `
             <div class="player-panel-item${isFollowed ? ' followed' : ''}${!entry.online ? ' offline' : ''}" data-name="${name}">
-                <span class="player-panel-dot${entry.online ? ' online' : ''}"></span>
+                <img class="player-panel-avatar${entry.online ? '' : ' player-offline'}${isFollowed ? ' player-followed' : ''}" src="${getPlayerAvatarUrl(name)}" alt="${name}">
                 <span class="player-panel-name">${name}</span>
                 ${isFollowed ? '<span class="player-panel-following">Following</span>' : ''}
                 ${diffDim ? `<span class="player-panel-dim">${entry.dimension.replace('the_', '')}</span>` : ''}
