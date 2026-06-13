@@ -132,7 +132,7 @@ function toggleTileOutlines() {
 }
 
 const HeatmapTileLayer = L.GridLayer.extend({
-    options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
+    options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: -2, maxNativeZoom: 0 },
     createTile(coords, done) {
         const wrapper = document.createElement('div');
         wrapper.className = 'heatmap-tile-wrapper';
