@@ -132,9 +132,8 @@ img {
 
 .map-icon.player-followed {
     filter: none;
-    transform: scale(1.08);
+    transform: scale(1.1);
     outline: 1px solid rgba(255, 255, 255, 0.95);
-    outline-offset: 1px;
 }
 
 .map-icon.player-offline.player-followed {
@@ -192,7 +191,7 @@ img {
 /* ── Offline player icon ───────────────────────────────────── */
 
 .player-offline {
-    opacity: 0.9;
+    opacity: 0.2;
     filter: none;
 }
 
