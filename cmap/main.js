@@ -25,9 +25,31 @@ const makeIcon = (url, extra = '') => L.icon({
     className: `map-icon${extra}`
 });
 
-const playerIcon = makeIcon('images/Player.png');
-const playerIconOffline = makeIcon('images/Player.png', ' player-offline');
+const makePlayerIcon = ({ online = true, followed = false } = {}) => makeIcon(
+    'images/Player.png',
+    `${online ? '' : ' player-offline'}${followed ? ' player-followed' : ''}`
+);
+
+const playerIcon = makePlayerIcon();
+const playerIconOffline = makePlayerIcon({ online: false });
+const playerIconFollowed = makePlayerIcon({ followed: true });
+const playerIconOfflineFollowed = makePlayerIcon({ online: false, followed: true });
 const compassIcon = makeIcon('images/Compass.png');
+
+function getCurrentDimension() {
+    return localStorage.getItem('dimensionType') || 'overworld';
+}
+
+function getPlayerIconForEntry(entry, isFollowed = false) {
+    if (isFollowed) return entry.online ? playerIconFollowed : playerIconOfflineFollowed;
+    return entry.online ? playerIcon : playerIconOffline;
+}
+
+function refreshPlayerMarkerAppearance(name) {
+    const entry = playerMarkers[name];
+    if (!entry) return;
+    entry.marker.setIcon(getPlayerIconForEntry(entry, followedPlayer === name));
+}
 
 async function fetchLatestSha() {
     const res = await fetch(`/api/sha`);
@@ -138,7 +160,7 @@ function setMarkerOnline(name, online) {
     const entry = playerMarkers[name];
     if (!entry) return;
     entry.online = online;
-    entry.marker.setIcon(online ? playerIcon : playerIconOffline);
+    refreshPlayerMarkerAppearance(name);
     updateEdgeIndicator(name);
     updatePlayerPanel();
 }
@@ -164,16 +186,17 @@ function removeEdgeIndicator(name) {
 function updateEdgeIndicator(name) {
     const entry = playerMarkers[name];
     if (!entry) { removeEdgeIndicator(name); return; }
-    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const currentDim = getCurrentDimension();
     const differentDim = entry.dimension && entry.dimension !== currentDim;
+    if (differentDim) {
+        removeEdgeIndicator(name);
+        return;
+    }
     const mapEl = document.getElementById('map');
     const W = mapEl.clientWidth, H = mapEl.clientHeight;
-    let onScreen = false;
-    if (!differentDim) {
-        const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
-        const pad = 24;
-        onScreen = pt.x >= pad && pt.x <= W - pad && pt.y >= pad && pt.y <= H - pad;
-    }
+    const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
+    const pad = 24;
+    const onScreen = pt.x >= pad && pt.x <= W - pad && pt.y >= pad && pt.y <= H - pad;
     if (onScreen) {
         if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
         return;
@@ -181,8 +204,6 @@ function updateEdgeIndicator(name) {
     const el = getOrCreateEdgeEl(name);
     el.classList.remove('hidden');
     el.classList.toggle('offline', !entry.online);
-    el.classList.toggle('diff-dim', !!differentDim);
-    const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
     const cx = W / 2, cy = H / 2;
     const dx = pt.x - cx, dy = pt.y - cy;
     const halfW = cx - EDGE_MARGIN, halfH = cy - EDGE_MARGIN;
@@ -207,17 +228,24 @@ function updateAllEdgeIndicators() {
 function focusPlayer(name) {
     const entry = playerMarkers[name];
     if (!entry) return;
-    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const currentDim = getCurrentDimension();
+    const previousFollowed = followedPlayer;
+    followedPlayer = name;
+    if (previousFollowed !== followedPlayer) {
+        refreshPlayerMarkerAppearance(previousFollowed);
+        refreshPlayerMarkerAppearance(followedPlayer);
+    }
+    updatePlayerPanel();
     if (entry.dimension && entry.dimension !== currentDim) {
-        followedPlayer = name;
         const select = document.getElementById('dimensionType');
         select.value = entry.dimension;
         select.dispatchEvent(new Event('change'));
         return;
     }
-    followedPlayer = name;
-    map.setView(entry.marker.getLatLng(), map.getZoom(), { animate: true });
-    updatePlayerPanel();
+    const target = entry.marker.getLatLng();
+    if (!map.getCenter().equals(target)) {
+        map.setView(target, map.getZoom(), { animate: true });
+    }
 }
 
 function updatePlayerPanel() {
@@ -230,7 +258,7 @@ function updatePlayerPanel() {
         return;
     }
     names.sort((a, b) => (playerMarkers[a].online ? 0 : 1) - (playerMarkers[b].online ? 0 : 1) || a.localeCompare(b));
-    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const currentDim = getCurrentDimension();
     list.innerHTML = names.map(name => {
         const entry = playerMarkers[name];
         const isFollowed = followedPlayer === name;
@@ -239,13 +267,18 @@ function updatePlayerPanel() {
             <div class="player-panel-item${isFollowed ? ' followed' : ''}${!entry.online ? ' offline' : ''}" data-name="${name}">
                 <span class="player-panel-dot${entry.online ? ' online' : ''}"></span>
                 <span class="player-panel-name">${name}</span>
+                ${isFollowed ? '<span class="player-panel-following">Following</span>' : ''}
                 ${diffDim ? `<span class="player-panel-dim">${entry.dimension.replace('the_', '')}</span>` : ''}
             </div>`;
     }).join('');
     list.querySelectorAll('.player-panel-item').forEach(el => {
         el.addEventListener('click', () => {
             const name = el.dataset.name;
-            if (followedPlayer === name) { followedPlayer = null; updatePlayerPanel(); }
+            if (followedPlayer === name) {
+                followedPlayer = null;
+                refreshPlayerMarkerAppearance(name);
+                updatePlayerPanel();
+            }
             else focusPlayer(name);
         });
     });
@@ -254,7 +287,7 @@ function updatePlayerPanel() {
 function togglePlayerPanel() { document.getElementById('playerPanelDropdown').classList.toggle('hidden'); }
 
 function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, online, last_seen) {
-    const currentDim = localStorage.getItem('dimensionType') || 'overworld';
+    const currentDim = getCurrentDimension();
     const entry = playerMarkers[playerName];
     if (entry) {
         entry.dimension = dimension;
@@ -270,10 +303,11 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         } else {
             if (entry.online !== online) {
                 entry.online = online;
-                entry.marker.setIcon(online ? playerIcon : playerIconOffline);
+                refreshPlayerMarkerAppearance(playerName);
             }
         }
-        updateEdgeIndicator(playerName);
+        refreshPlayerMarkerAppearance(playerName);
+        removeEdgeIndicator(playerName);
         updatePlayerPanel();
         return;
     }
@@ -286,7 +320,11 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         const marker = addMarker(online ? playerIcon : playerIconOffline, mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
         playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen };
     }
-    if (online && followedPlayer === playerName) map.setView([mapY, mapX], map.getZoom(), { animate: true });
+    if (online && followedPlayer === playerName) {
+        const target = L.latLng(mapY, mapX);
+        if (!map.getCenter().equals(target)) map.setView(target, map.getZoom(), { animate: false });
+    }
+    refreshPlayerMarkerAppearance(playerName);
     updateEdgeIndicator(playerName);
 }
 
