@@ -191,7 +191,7 @@ img {
 /* ── Offline player icon ───────────────────────────────────── */
 
 .player-offline {
-    opacity: 0.2;
+    opacity: 0.6;
     filter: none;
 }
 
