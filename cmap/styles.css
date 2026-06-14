@@ -369,30 +369,7 @@ img {
     text-transform: capitalize;
 }
 
-.bar-btn {
-    font-size: 12px;
-    font-weight: 700;
-    color: #f5f5f5;
-    background: rgba(30, 30, 30, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    cursor: pointer;
-    padding: 6px 10px;
-    min-height: 34px;
-    backdrop-filter: blur(3px);
-    white-space: nowrap;
-    transition: background 0.12s;
-}
-
-.bar-btn:hover {
-    background: rgba(50, 50, 50, 0.95);
-}
-
-.bar-btn:focus {
-    outline: 1px solid rgba(255, 255, 255, 0.35);
-    outline-offset: 1px;
-}
-
+/* Player popup (marker click) */
 .player-popup {
     position: absolute;
     z-index: 1200;

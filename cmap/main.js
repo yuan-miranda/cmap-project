@@ -222,7 +222,6 @@ function setTileOutlinesEnabled(enabled) {
     tileOutlinesEnabled = enabled;
     localStorage.setItem('tileOutlinesEnabled', String(enabled));
     applyTileOutlineState();
-    syncTileGridBtn();
 }
 
 function toggleTileOutlines() {
@@ -572,6 +571,8 @@ function createMapContextMenu(e) {
 
     document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
+    document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
+    document.getElementById('toggleTileOutlinesBtn').querySelector('.ctx-value').textContent = tileOutlinesEnabled ? 'On' : 'Off';
 
     menu.style.left = '0px';
     menu.style.top = '0px';
@@ -579,6 +580,8 @@ function createMapContextMenu(e) {
     function close() { menu.classList.add('hidden'); }
     document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(`${mc_x}, ${mc_z}`); close(); };
     document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(`${tileX} ${tileY}`); close(); };
+    document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
+    document.getElementById('toggleTileOutlinesBtn').onclick = () => { toggleTileOutlines(); close(); };
     setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
 
     const rect = menu.getBoundingClientRect();
@@ -621,6 +624,7 @@ function openPlayerPopup(name, markerContainerPoint) {
         closePlayerPopup();
     };
 
+    // Position: top-left of popup aligns with the marker icon, then clamp to screen
     popup.style.left = '0px';
     popup.style.top = '0px';
     popup.classList.remove('hidden');
@@ -628,7 +632,7 @@ function openPlayerPopup(name, markerContainerPoint) {
     const rect = popup.getBoundingClientRect();
     const margin = 8;
     const anchorX = markerContainerPoint.x + 10;
-    const anchorY = markerContainerPoint.y - Math.round(rect.height / 2);
+    const anchorY = markerContainerPoint.y;
     const maxLeft = window.innerWidth - rect.width - margin;
     const maxTop = window.innerHeight - rect.height - margin;
     popup.style.left = `${Math.max(margin, Math.min(anchorX, maxLeft))}px`;
@@ -637,10 +641,6 @@ function openPlayerPopup(name, markerContainerPoint) {
     setTimeout(() => document.addEventListener('click', closePlayerPopup, { once: true }), 0);
 }
 
-function syncTileGridBtn() {
-    const span = document.getElementById('tileGridState');
-    if (span) span.textContent = tileOutlinesEnabled ? 'On' : 'Off';
-}
 
 function dimensionTypeListener() {
     const select = document.getElementById('dimensionType');
@@ -680,8 +680,6 @@ function eventListener() {
     document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
     document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
     document.addEventListener('click', e => { if (!document.getElementById('playerPanel').contains(e.target)) document.getElementById('playerPanelDropdown').classList.add('hidden'); });
-    document.getElementById('centerBtn').addEventListener('click', () => centerToOrigin());
-    document.getElementById('toggleTileOutlinesBtn').addEventListener('click', () => toggleTileOutlines());
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', updateAllEdgeIndicators);
         window.visualViewport.addEventListener('scroll', updateAllEdgeIndicators);
