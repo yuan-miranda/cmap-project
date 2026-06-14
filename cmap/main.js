@@ -153,6 +153,7 @@ function refreshPlayerMarkerAppearance(name) {
     const entry = playerMarkers[name];
     if (!entry) return;
     entry.marker.setIcon(getPlayerIconForEntry(entry, followedPlayer === name));
+    applyMarkerTitle(entry.marker, name);
 }
 
 function switchDimension(dimension) {
@@ -305,11 +306,18 @@ function centerToOrigin() {
     map.setView([CENTER.y, CENTER.x], map.getZoom(), { animate: true });
 }
 
+function applyMarkerTitle(marker, title) {
+    if (!title) return;
+    if (marker._icon) marker._icon.title = title;
+}
+
 function addMarker(icon, y, x, title, text = '') {
     const marker = L.marker([y, x]).addTo(map);
     if (icon) marker.setIcon(icon);
     marker.bindPopup(text || `${x}, ${y}`);
-    marker.on('add', () => { if (title && marker._icon) marker._icon.title = title; });
+    marker._cmap_title = title;
+    marker.on('add', () => applyMarkerTitle(marker, title));
+    applyMarkerTitle(marker, title);
     return marker;
 }
 
@@ -492,6 +500,8 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         if (!entry) {
             const marker = L.marker([mapY, mapX]);
             marker.bindPopup(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
+            marker._cmap_title = playerName;
+            marker.on('add', () => applyMarkerTitle(marker, playerName));
             playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
         } else {
             if (entry.online !== online) {
