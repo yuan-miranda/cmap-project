@@ -340,6 +340,7 @@ function getOrCreateEdgeEl(name) {
     if (edgeIndicatorEls[name]) return edgeIndicatorEls[name];
     const el = document.createElement('div');
     el.className = 'edge-indicator';
+    el.title = name;
     el.innerHTML = `<img class="edge-sprite" src="${getPlayerAvatarUrl(name)}" alt="${name}">`;
     el.addEventListener('click', () => focusPlayer(name));
     document.getElementById('edgeIndicators').appendChild(el);
