@@ -117,8 +117,8 @@ async function fetchAvatarAsync(playerName) {
 function getPlayerAvatarUrl(playerName) {
     if (avatarCache[playerName]) {
         const age = Date.now() - avatarCache[playerName].timestamp;
-        const ONE_WEEK = 7 * 24 * 60 * 60 * 1000;
-        if (age < ONE_WEEK) {
+        const CACHE_DURATION = 10 * 60 * 1000;
+        if (age < CACHE_DURATION) {
             return avatarCache[playerName].url;
         }
     }
