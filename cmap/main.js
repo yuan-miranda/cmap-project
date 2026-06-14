@@ -70,28 +70,28 @@ async function fetchAvatarAsync(playerName) {
     if (fetchingAvatars.has(playerName)) return;
     fetchingAvatars.add(playerName);
 
-    const defaultUrl = `https://mc-heads.net/avatar/${encodeURIComponent(playerName)}/16`;
+    const isBedrock = playerName.startsWith('.');
+    const lookupName = isBedrock ? playerName.substring(1) : playerName;
+    const defaultJavaUrl = `https://mc-heads.net/avatar/${encodeURIComponent(lookupName)}/16`;
 
     try {
-        const res = await fetch(defaultUrl, { method: 'HEAD' });
-        
-        if (res.ok) {
-            cacheAvatar(playerName, defaultUrl, 'java');
-        } else {
-            const bedrockBase64 = await fetchBedrockHeadBase64(playerName);
+        if (isBedrock) {
+            const bedrockBase64 = await fetchBedrockHeadBase64(lookupName);
             if (bedrockBase64) {
                 cacheAvatar(playerName, bedrockBase64, 'bedrock');
             } else {
-                cacheAvatar(playerName, defaultUrl, 'failed');
+                cacheAvatar(playerName, defaultJavaUrl, 'failed');
+            }
+        } else {
+            const res = await fetch(defaultJavaUrl, { method: 'HEAD' });
+            if (res.ok) {
+                cacheAvatar(playerName, defaultJavaUrl, 'java');
+            } else {
+                cacheAvatar(playerName, defaultJavaUrl, 'failed');
             }
         }
     } catch (e) {
-        const bedrockBase64 = await fetchBedrockHeadBase64(playerName);
-        if (bedrockBase64) {
-            cacheAvatar(playerName, bedrockBase64, 'bedrock');
-        } else {
-            cacheAvatar(playerName, defaultUrl, 'failed');
-        }
+        cacheAvatar(playerName, defaultJavaUrl, 'failed');
     }
 
     fetchingAvatars.delete(playerName);
@@ -106,10 +106,12 @@ async function fetchAvatarAsync(playerName) {
         refreshPlayerMarkerAppearance(playerName);
     }
     
-    const newAvatarUrl = avatarCache[playerName].url;
-    document.querySelectorAll(`img[alt="${playerName}"]`).forEach(img => {
-        img.src = newAvatarUrl;
-    });
+    if (avatarCache[playerName]) {
+        const newAvatarUrl = avatarCache[playerName].url;
+        document.querySelectorAll(`img[alt="${playerName}"]`).forEach(img => {
+            img.src = newAvatarUrl;
+        });
+    }
 }
 
 function getPlayerAvatarUrl(playerName) {
@@ -122,7 +124,9 @@ function getPlayerAvatarUrl(playerName) {
     }
     
     fetchAvatarAsync(playerName);
-    return `https://mc-heads.net/avatar/${encodeURIComponent(playerName)}/16`;
+    
+    const lookupName = playerName.startsWith('.') ? playerName.substring(1) : playerName;
+    return `https://mc-heads.net/avatar/${encodeURIComponent(lookupName)}/16`;
 }
 
 function makePlayerIcon(playerName, { online = true, followed = false } = {}) {
