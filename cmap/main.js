@@ -14,8 +14,8 @@ let TILE_BASE_URL = '';
 let pendingFollowDimensionSwitch = false;
 let tileOutlinesEnabled = localStorage.getItem('tileOutlinesEnabled') === 'true';
 
-const PLAYER_VISIBILITY_MODES = ['all', 'indicator-only', 'marker-only', 'none'];
-const PLAYER_VISIBILITY_LABELS = { 'all': 'All', 'indicator-only': 'Indicator Only', 'marker-only': 'Marker Only', 'none': 'None' };
+const PLAYER_VISIBILITY_MODES = ['all', 'followed-only', 'indicator-only', 'marker-only', 'none'];
+const PLAYER_VISIBILITY_LABELS = { 'all': 'All', 'followed-only': 'Followed Only', 'indicator-only': 'Indicator Only', 'marker-only': 'Marker Only', 'none': 'None' };
 let playerVisibility = localStorage.getItem('playerVisibility') || 'all';
 
 const playerMarkers = {};
@@ -235,18 +235,33 @@ function toggleTileOutlines() {
 function applyPlayerVisibility() {
     const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only';
     const showIndicators = playerVisibility === 'all' || playerVisibility === 'indicator-only';
+    const followedOnly = playerVisibility === 'followed-only';
+
+    if (followedPlayer && playerVisibility !== 'all' && playerVisibility !== 'followed-only') {
+        followedPlayer = null;
+        localStorage.removeItem('followedPlayer');
+        updatePlayerPanelToggleIcon();
+        updatePlayerPanel();
+    }
+
     for (const name of Object.keys(playerMarkers)) {
         const entry = playerMarkers[name];
-        if (showMarkers) {
+        const isFollowed = followedPlayer === name;
+        const showThisMarker = followedOnly ? isFollowed : showMarkers;
+        const showThisIndicator = followedOnly ? isFollowed : showIndicators;
+
+        if (showThisMarker) {
             if (map && !map.hasLayer(entry.marker)) entry.marker.addTo(map);
         } else {
             if (map && map.hasLayer(entry.marker)) entry.marker.remove();
         }
-        if (!showIndicators) {
+
+        if (!showThisIndicator) {
             if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
         }
     }
-    if (showIndicators) updateAllEdgeIndicators();
+
+    if (showIndicators || followedOnly) updateAllEdgeIndicators();
 }
 
 function cyclePlayerVisibility() {
@@ -420,7 +435,8 @@ function updateEdgeIndicator(name) {
         return;
     }
     const showIndicators = playerVisibility === 'all' || playerVisibility === 'indicator-only';
-    if (!showIndicators) {
+    const followedOnly = playerVisibility === 'followed-only';
+    if (!showIndicators && !(followedOnly && followedPlayer === name)) {
         if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
         return;
     }
@@ -567,13 +583,16 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         return;
     }
     if (entry) {
-        const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only';
+        const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only'
+            || (playerVisibility === 'followed-only' && followedPlayer === playerName);
         if (showMarkers && !map.hasLayer(entry.marker)) entry.marker.addTo(map);
         entry.marker.setLatLng([mapY, mapX]);
         if (entry.online !== online) setMarkerOnline(playerName, online);
     } else {
         const marker = addPlayerMarker(makePlayerIcon(playerName, { online }), mapY, mapX, playerName);
-        if (playerVisibility !== 'all' && playerVisibility !== 'marker-only') marker.remove();
+        const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only'
+            || (playerVisibility === 'followed-only' && followedPlayer === playerName);
+        if (!showMarkers) marker.remove();
         playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
     }
     refreshPlayerMarkerAppearance(playerName);
@@ -606,7 +625,6 @@ function createMapContextMenu(e) {
 
     document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
-    document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('toggleTileOutlinesBtn').querySelector('.ctx-value').textContent = tileOutlinesEnabled ? 'On' : 'Off';
     document.getElementById('playerVisibilityBtn').querySelector('.ctx-value').textContent = PLAYER_VISIBILITY_LABELS[playerVisibility];
 
