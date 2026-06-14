@@ -326,13 +326,9 @@ img {
     flex-shrink: 0;
     image-rendering: pixelated;
     border-radius: 0;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.05);
 }
 
 .player-panel-avatar.player-followed {
-    outline: 1px solid rgba(255, 255, 255, 0.95);
-    outline-offset: 2px;
     transform: none;
 }
 
