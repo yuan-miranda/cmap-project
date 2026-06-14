@@ -594,6 +594,10 @@ function createMapContextMenu(e) {
 
 function closePlayerPopup() {
     document.getElementById('playerPopup').classList.add('hidden');
+    if (closePlayerPopup._outsideHandler) {
+        document.removeEventListener('click', closePlayerPopup._outsideHandler);
+        closePlayerPopup._outsideHandler = null;
+    }
 }
 
 function openPlayerPopup(name, markerContainerPoint) {
@@ -638,7 +642,16 @@ function openPlayerPopup(name, markerContainerPoint) {
     popup.style.left = `${Math.max(margin, Math.min(anchorX, maxLeft))}px`;
     popup.style.top = `${Math.max(margin, Math.min(anchorY, maxTop))}px`;
 
-    setTimeout(() => document.addEventListener('click', closePlayerPopup, { once: true }), 0);
+    setTimeout(() => {
+        function onOutsideClick(e) {
+            const popup = document.getElementById('playerPopup');
+            if (popup && popup.contains(e.target)) return;
+            closePlayerPopup();
+            document.removeEventListener('click', onOutsideClick);
+        }
+        closePlayerPopup._outsideHandler = onOutsideClick;
+        document.addEventListener('click', onOutsideClick);
+    }, 0);
 }
 
 
