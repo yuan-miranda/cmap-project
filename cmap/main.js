@@ -222,6 +222,7 @@ function setTileOutlinesEnabled(enabled) {
     tileOutlinesEnabled = enabled;
     localStorage.setItem('tileOutlinesEnabled', String(enabled));
     applyTileOutlineState();
+    syncTileGridBtn();
 }
 
 function toggleTileOutlines() {
@@ -318,6 +319,21 @@ function addMarker(icon, y, x, title, text = '') {
     marker._cmap_title = title;
     marker.on('add', () => applyMarkerTitle(marker, title));
     applyMarkerTitle(marker, title);
+    return marker;
+}
+
+function addPlayerMarker(icon, y, x, playerName) {
+    const marker = L.marker([y, x]).addTo(map);
+    if (icon) marker.setIcon(icon);
+    marker._cmap_title = playerName;
+    marker.on('add', () => applyMarkerTitle(marker, playerName));
+    applyMarkerTitle(marker, playerName);
+    marker.on('click', (e) => {
+        L.DomEvent.stopPropagation(e);
+        closePlayerPopup();
+        const pt = map.latLngToContainerPoint(marker.getLatLng());
+        openPlayerPopup(playerName, pt);
+    });
     return marker;
 }
 
@@ -499,9 +515,13 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
     if (dimension !== currentDim) {
         if (!entry) {
             const marker = L.marker([mapY, mapX]);
-            marker.bindPopup(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
             marker._cmap_title = playerName;
             marker.on('add', () => applyMarkerTitle(marker, playerName));
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                const pt = map.latLngToContainerPoint(marker.getLatLng());
+                openPlayerPopup(playerName, pt);
+            });
             playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
         } else {
             if (entry.online !== online) {
@@ -517,10 +537,9 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
     if (entry) {
         if (!map.hasLayer(entry.marker)) entry.marker.addTo(map);
         entry.marker.setLatLng([mapY, mapX]);
-        entry.marker.setPopupContent(`${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
         if (entry.online !== online) setMarkerOnline(playerName, online);
     } else {
-        const marker = addMarker(makePlayerIcon(playerName, { online }), mapY, mapX, playerName, `${playerName}<br>x: ${mc_x}, z: ${mc_z}`);
+        const marker = addPlayerMarker(makePlayerIcon(playerName, { online }), mapY, mapX, playerName);
         playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
     }
     refreshPlayerMarkerAppearance(playerName);
@@ -541,6 +560,7 @@ async function updatePlayerMarkers() {
 
 function createMapContextMenu(e) {
     e.preventDefault();
+    closePlayerPopup();
     const menu = document.getElementById('contextMenu');
     const clientX = e.clientX ?? 0;
     const clientY = e.clientY ?? 0;
@@ -550,19 +570,15 @@ function createMapContextMenu(e) {
     const tileX = Math.floor(mc_x / TILE_SIZE);
     const tileY = Math.floor(mc_z / TILE_SIZE);
 
-    document.getElementById('toggleTileOutlinesBtn').querySelector('.ctx-value').textContent = tileOutlinesEnabled ? 'On' : 'Off';
     document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
-    document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
 
     menu.style.left = '0px';
     menu.style.top = '0px';
     menu.classList.remove('hidden');
     function close() { menu.classList.add('hidden'); }
-    document.getElementById('toggleTileOutlinesBtn').onclick = () => { toggleTileOutlines(); close(); };
-    document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyCoordinatesBtn').querySelector('.ctx-value').textContent); close(); };
-    document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent); close(); };
-    document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
+    document.getElementById('copyCoordinatesBtn').onclick = () => { navigator.clipboard.writeText(`${mc_x}, ${mc_z}`); close(); };
+    document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(`${tileX} ${tileY}`); close(); };
     setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
 
     const rect = menu.getBoundingClientRect();
@@ -571,6 +587,59 @@ function createMapContextMenu(e) {
     const maxTop = window.innerHeight - rect.height - margin;
     menu.style.left = `${Math.max(margin, Math.min(clientX, maxLeft))}px`;
     menu.style.top = `${Math.max(margin, Math.min(clientY, maxTop))}px`;
+}
+
+function closePlayerPopup() {
+    document.getElementById('playerPopup').classList.add('hidden');
+}
+
+function openPlayerPopup(name, markerContainerPoint) {
+    closePlayerPopup();
+    const entry = playerMarkers[name];
+    if (!entry) return;
+
+    const popup = document.getElementById('playerPopup');
+    document.getElementById('playerPopupAvatar').src = getPlayerAvatarUrl(name);
+    document.getElementById('playerPopupAvatar').alt = name;
+    document.getElementById('playerPopupName').textContent = name;
+    document.getElementById('playerPopupCoords').textContent = `x: ${entry.mc_x}  z: ${entry.mc_z}`;
+
+    const followBtn = document.getElementById('playerPopupFollowBtn');
+    const isFollowed = followedPlayer === name;
+    followBtn.textContent = isFollowed ? 'Unfollow' : 'Follow';
+    followBtn.onclick = () => {
+        if (followedPlayer === name) {
+            followedPlayer = null;
+            localStorage.removeItem('followedPlayer');
+            refreshPlayerMarkerAppearance(name);
+            if (map) setCoordinateDisplayFromLatLng(map.getCenter());
+            updatePlayerPanelToggleIcon();
+            updatePlayerPanel();
+        } else {
+            focusPlayer(name);
+        }
+        closePlayerPopup();
+    };
+
+    popup.style.left = '0px';
+    popup.style.top = '0px';
+    popup.classList.remove('hidden');
+
+    const rect = popup.getBoundingClientRect();
+    const margin = 8;
+    const anchorX = markerContainerPoint.x + 10;
+    const anchorY = markerContainerPoint.y - Math.round(rect.height / 2);
+    const maxLeft = window.innerWidth - rect.width - margin;
+    const maxTop = window.innerHeight - rect.height - margin;
+    popup.style.left = `${Math.max(margin, Math.min(anchorX, maxLeft))}px`;
+    popup.style.top = `${Math.max(margin, Math.min(anchorY, maxTop))}px`;
+
+    setTimeout(() => document.addEventListener('click', closePlayerPopup, { once: true }), 0);
+}
+
+function syncTileGridBtn() {
+    const span = document.getElementById('tileGridState');
+    if (span) span.textContent = tileOutlinesEnabled ? 'On' : 'Off';
 }
 
 function dimensionTypeListener() {
@@ -611,6 +680,8 @@ function eventListener() {
     document.addEventListener('keydown', e => { if (!['INPUT', 'SELECT'].includes(e.target.tagName) && e.key.toLowerCase() === 'c') centerToOrigin(); });
     document.getElementById('playerPanelToggle').addEventListener('click', e => { e.stopPropagation(); togglePlayerPanel(); });
     document.addEventListener('click', e => { if (!document.getElementById('playerPanel').contains(e.target)) document.getElementById('playerPanelDropdown').classList.add('hidden'); });
+    document.getElementById('centerBtn').addEventListener('click', () => centerToOrigin());
+    document.getElementById('toggleTileOutlinesBtn').addEventListener('click', () => toggleTileOutlines());
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', updateAllEdgeIndicators);
         window.visualViewport.addEventListener('scroll', updateAllEdgeIndicators);

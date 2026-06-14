@@ -21,6 +21,8 @@
         </select>
         <p class="m-0">x: <span id="x">0</span> z: <span id="z">0</span> tile: <span id="tileX">0</span> <span
                 id="tileY">0</span></p>
+        <button class="bar-btn" id="centerBtn" title="Center to origin">Center</button>
+        <button class="bar-btn" id="toggleTileOutlinesBtn" title="Toggle tile grid">Tile Grid: <span id="tileGridState">Off</span></button>
     </div>
 
     <div class="urls">
@@ -43,10 +45,6 @@
     </div>
 
     <div class="context-menu hidden" id="contextMenu">
-        <button type="button" id="toggleTileOutlinesBtn">
-            <span class="ctx-label">Tile Grid</span>
-            <span class="ctx-value">Off</span>
-        </button>
         <button type="button" id="copyCoordinatesBtn">
             <span class="ctx-label">Coordinates</span>
             <span class="ctx-value"></span>
@@ -55,11 +53,17 @@
             <span class="ctx-label">Tile</span>
             <span class="ctx-value"></span>
         </button>
+    </div>
+
+    <div class="player-popup hidden" id="playerPopup">
+        <div class="player-popup-header">
+            <img class="player-popup-avatar" id="playerPopupAvatar" src="" alt="">
+            <span class="player-popup-name" id="playerPopupName"></span>
+        </div>
         <div class="ctx-divider"></div>
-        <button type="button" id="centerBtn">
-            <span class="ctx-label">Center</span>
-            <span class="ctx-hint">0, 0</span>
-        </button>
+        <div class="player-popup-coords" id="playerPopupCoords"></div>
+        <div class="ctx-divider"></div>
+        <button type="button" class="player-popup-follow-btn" id="playerPopupFollowBtn"></button>
     </div>
 
     <div id="edgeIndicators"></div>

@@ -368,3 +368,88 @@ img {
     white-space: nowrap;
     text-transform: capitalize;
 }
+
+.bar-btn {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f5f5f5;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 6px 10px;
+    min-height: 34px;
+    backdrop-filter: blur(3px);
+    white-space: nowrap;
+    transition: background 0.12s;
+}
+
+.bar-btn:hover {
+    background: rgba(50, 50, 50, 0.95);
+}
+
+.bar-btn:focus {
+    outline: 1px solid rgba(255, 255, 255, 0.35);
+    outline-offset: 1px;
+}
+
+.player-popup {
+    position: absolute;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 4px 0;
+    background: rgba(30, 30, 30, 0.92);
+    border-radius: 4px;
+    min-width: 160px;
+    font-size: 13px;
+    backdrop-filter: blur(4px);
+}
+
+.player-popup-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px 6px;
+}
+
+.player-popup-avatar {
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+}
+
+.player-popup-name {
+    color: #f0f0f0;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.player-popup-coords {
+    padding: 5px 12px;
+    color: #ccc;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.player-popup-follow-btn {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    background: none;
+    border: none;
+    color: #e8e8e8;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+}
+
+.player-popup-follow-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
