@@ -237,7 +237,7 @@ function applyPlayerVisibility() {
     const showIndicators = playerVisibility === 'all' || playerVisibility === 'indicator-only';
     const followedOnly = playerVisibility === 'followed-only';
 
-    if (followedPlayer && playerVisibility !== 'all' && playerVisibility !== 'followed-only') {
+    if (followedPlayer && (playerVisibility === 'indicator-only' || playerVisibility === 'none')) {
         followedPlayer = null;
         localStorage.removeItem('followedPlayer');
         updatePlayerPanelToggleIcon();
@@ -497,6 +497,7 @@ function focusPlayer(name) {
     }
     refreshPlayerMarkerAppearance(followedPlayer);
     syncCoordinateDisplayToFollowed();
+    if (playerVisibility === 'followed-only') applyPlayerVisibility();
     updatePlayerPanel();
     if (entry.dimension && entry.dimension !== currentDim) {
         switchDimension(entry.dimension);
@@ -534,11 +535,13 @@ function updatePlayerPanel() {
     list.querySelectorAll('.player-panel-item').forEach(el => {
         el.addEventListener('click', () => {
             const name = el.dataset.name;
+            if (playerVisibility === 'indicator-only' || playerVisibility === 'none') return;
             if (followedPlayer === name) {
                 followedPlayer = null;
                 localStorage.removeItem('followedPlayer');
                 refreshPlayerMarkerAppearance(name);
                 if (map) setCoordinateDisplayFromLatLng(map.getCenter());
+                if (playerVisibility === 'followed-only') applyPlayerVisibility();
                 updatePlayerPanelToggleIcon();
                 updatePlayerPanel();
             } else {
