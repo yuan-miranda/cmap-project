@@ -14,6 +14,10 @@ let TILE_BASE_URL = '';
 let pendingFollowDimensionSwitch = false;
 let tileOutlinesEnabled = localStorage.getItem('tileOutlinesEnabled') === 'true';
 
+const PLAYER_VISIBILITY_MODES = ['all', 'indicator-only', 'marker-only', 'none'];
+const PLAYER_VISIBILITY_LABELS = { 'all': 'All', 'indicator-only': 'Indicator Only', 'marker-only': 'Marker Only', 'none': 'None' };
+let playerVisibility = localStorage.getItem('playerVisibility') || 'all';
+
 const playerMarkers = {};
 let followedPlayer = localStorage.getItem('followedPlayer') || null;
 
@@ -228,6 +232,30 @@ function toggleTileOutlines() {
     setTileOutlinesEnabled(!tileOutlinesEnabled);
 }
 
+function applyPlayerVisibility() {
+    const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only';
+    const showIndicators = playerVisibility === 'all' || playerVisibility === 'indicator-only';
+    for (const name of Object.keys(playerMarkers)) {
+        const entry = playerMarkers[name];
+        if (showMarkers) {
+            if (map && !map.hasLayer(entry.marker)) entry.marker.addTo(map);
+        } else {
+            if (map && map.hasLayer(entry.marker)) entry.marker.remove();
+        }
+        if (!showIndicators) {
+            if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
+        }
+    }
+    if (showIndicators) updateAllEdgeIndicators();
+}
+
+function cyclePlayerVisibility() {
+    const idx = PLAYER_VISIBILITY_MODES.indexOf(playerVisibility);
+    playerVisibility = PLAYER_VISIBILITY_MODES[(idx + 1) % PLAYER_VISIBILITY_MODES.length];
+    localStorage.setItem('playerVisibility', playerVisibility);
+    applyPlayerVisibility();
+}
+
 const HeatmapTileLayer = L.GridLayer.extend({
     options: { tileSize: TILE_SIZE, dimension: 'overworld', className: 'heatmap-grid', minNativeZoom: 0, maxNativeZoom: 0 },
     createTile(coords, done) {
@@ -391,6 +419,11 @@ function updateEdgeIndicator(name) {
         removeEdgeIndicator(name);
         return;
     }
+    const showIndicators = playerVisibility === 'all' || playerVisibility === 'indicator-only';
+    if (!showIndicators) {
+        if (edgeIndicatorEls[name]) edgeIndicatorEls[name].classList.add('hidden');
+        return;
+    }
     const mapEl = document.getElementById('map');
     const W = mapEl.clientWidth, H = getVisibleViewportHeight();
     const pt = map.latLngToContainerPoint(entry.marker.getLatLng());
@@ -534,11 +567,13 @@ function updateOrAddPlayerMarker(playerName, dimension, mapX, mapY, mc_x, mc_z, 
         return;
     }
     if (entry) {
-        if (!map.hasLayer(entry.marker)) entry.marker.addTo(map);
+        const showMarkers = playerVisibility === 'all' || playerVisibility === 'marker-only';
+        if (showMarkers && !map.hasLayer(entry.marker)) entry.marker.addTo(map);
         entry.marker.setLatLng([mapY, mapX]);
         if (entry.online !== online) setMarkerOnline(playerName, online);
     } else {
         const marker = addPlayerMarker(makePlayerIcon(playerName, { online }), mapY, mapX, playerName);
+        if (playerVisibility !== 'all' && playerVisibility !== 'marker-only') marker.remove();
         playerMarkers[playerName] = { marker, online, mc_x, mc_z, dimension, last_seen, playerName };
     }
     refreshPlayerMarkerAppearance(playerName);
@@ -573,6 +608,7 @@ function createMapContextMenu(e) {
     document.getElementById('copyTileBtn').querySelector('.ctx-value').textContent = `${tileX} ${tileY}`;
     document.getElementById('centerBtn').querySelector('.ctx-hint').textContent = `${mc_x}, ${mc_z}`;
     document.getElementById('toggleTileOutlinesBtn').querySelector('.ctx-value').textContent = tileOutlinesEnabled ? 'On' : 'Off';
+    document.getElementById('playerVisibilityBtn').querySelector('.ctx-value').textContent = PLAYER_VISIBILITY_LABELS[playerVisibility];
 
     menu.style.left = '0px';
     menu.style.top = '0px';
@@ -582,6 +618,7 @@ function createMapContextMenu(e) {
     document.getElementById('copyTileBtn').onclick = () => { navigator.clipboard.writeText(`${tileX} ${tileY}`); close(); };
     document.getElementById('centerBtn').onclick = () => { centerToOrigin(); close(); };
     document.getElementById('toggleTileOutlinesBtn').onclick = () => { toggleTileOutlines(); close(); };
+    document.getElementById('playerVisibilityBtn').onclick = () => { cyclePlayerVisibility(); close(); };
     setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
 
     const rect = menu.getBoundingClientRect();
@@ -704,5 +741,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     eventListener();
     dimensionTypeListener();
     setTileOutlinesEnabled(tileOutlinesEnabled);
+    applyPlayerVisibility();
     startInterval();
 });
